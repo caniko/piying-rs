@@ -1,5 +1,8 @@
 use kameo::prelude::*;
-use kameo_actors::broker::{Broker, DeliveryStrategy, Publish, Subscribe};
+use kameo_actors::{
+    broker::{Broker, Publish, Subscribe},
+    DeliveryStrategy,
+};
 
 #[derive(Actor)]
 struct MyActor;
