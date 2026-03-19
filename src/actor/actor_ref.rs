@@ -1030,10 +1030,8 @@ where
     where
         A: remote::RemoteActor,
     {
-        let remote_ref = RemoteActorRef::new(
-            self.id(),
-            remote::ActorSwarm::get().unwrap().sender().clone(),
-        );
+        let swarm_tx = remote::ActorSwarm::with(|s| s.sender().clone()).unwrap();
+        let remote_ref = RemoteActorRef::new(self.id(), swarm_tx);
 
         remote::REMOTE_REGISTRY
             .lock()
@@ -1054,10 +1052,8 @@ where
     where
         A: remote::RemoteActor,
     {
-        let remote_ref = RemoteActorRef::new(
-            self.id(),
-            remote::ActorSwarm::get().unwrap().sender().clone(),
-        );
+        let swarm_tx = remote::ActorSwarm::with(|s| s.sender().clone()).unwrap();
+        let remote_ref = RemoteActorRef::new(self.id(), swarm_tx);
 
         remote::REMOTE_REGISTRY
             .blocking_lock()
@@ -1473,7 +1469,8 @@ impl<A> RemoteActorRef<A>
 where
     A: Actor + remote::RemoteActor,
 {
-    pub(crate) fn new(id: ActorId, swarm_tx: remote::SwarmSender) -> Self {
+    /// Creates a new `RemoteActorRef` with the given actor ID and swarm sender.
+    pub fn new(id: ActorId, swarm_tx: remote::SwarmSender) -> Self {
         RemoteActorRef {
             id,
             swarm_tx,
@@ -1496,6 +1493,23 @@ where
             swarm_tx: swarm.sender().clone(),
             phantom: PhantomData,
         })
+    }
+
+    /// Creates a `RemoteActorRef` for the well-known actor on the given peer,
+    /// using an explicit `SwarmSender` instead of reading the global `ActorSwarm`.
+    ///
+    /// This is infallible — it never fails because it doesn't depend on global state.
+    /// Uses the well-known `ActorId(0, peer_id)` convention.
+    pub fn for_peer_with_sender(
+        peer_id: libp2p::PeerId,
+        swarm_tx: remote::SwarmSender,
+    ) -> Self {
+        let actor_id = ActorId::new_with_peer_id(0, peer_id);
+        Self {
+            id: actor_id,
+            swarm_tx,
+            phantom: PhantomData,
+        }
     }
 
     /// Returns the unique identifier of the remote actor.
@@ -1698,12 +1712,10 @@ where
             return Ok(());
         }
 
-        let swarm_a =
+        let swarm =
             remote::ActorSwarm::get().ok_or(error::RemoteSendError::SwarmNotBootstrapped)?;
-        let swarm_b =
-            remote::ActorSwarm::get().ok_or(error::RemoteSendError::SwarmNotBootstrapped)?;
-        let fut_a = swarm_a.link::<A, B>(self.id, sibling_ref.id);
-        let fut_b = swarm_b.link::<B, A>(sibling_ref.id, self.id);
+        let fut_a = swarm.link::<A, B>(self.id, sibling_ref.id);
+        let fut_b = swarm.link::<B, A>(sibling_ref.id, self.id);
 
         tokio::try_join!(fut_a, fut_b)?;
 
@@ -1743,12 +1755,10 @@ where
             return Ok(());
         }
 
-        let swarm_a =
+        let swarm =
             remote::ActorSwarm::get().ok_or(error::RemoteSendError::SwarmNotBootstrapped)?;
-        let swarm_b =
-            remote::ActorSwarm::get().ok_or(error::RemoteSendError::SwarmNotBootstrapped)?;
-        let fut_a = swarm_a.unlink::<B>(self.id, sibling_ref.id);
-        let fut_b = swarm_b.unlink::<A>(sibling_ref.id, self.id);
+        let fut_a = swarm.unlink::<B>(self.id, sibling_ref.id);
+        let fut_b = swarm.unlink::<A>(sibling_ref.id, self.id);
 
         tokio::try_join!(fut_a, fut_b)?;
 

@@ -114,7 +114,7 @@ impl ActorId {
             let peer_id_bytes = self
                 .peer_id()
                 .map(|peer_id| peer_id.to_bytes())
-                .or_else(|| ActorSwarm::get().map(|swarm| swarm.local_peer_id().to_bytes()));
+                .or_else(|| ActorSwarm::with(|s| s.local_peer_id().to_bytes()));
 
             if let Some(peer_id_bytes) = peer_id_bytes {
                 bytes.extend(peer_id_bytes);
@@ -276,7 +276,7 @@ enum PeerIdKind {
 impl PeerIdKind {
     fn peer_id(&self) -> Option<libp2p::PeerId> {
         match self {
-            PeerIdKind::Local => ActorSwarm::get().map(|s| s.local_peer_id()),
+            PeerIdKind::Local => ActorSwarm::with(|s| *s.local_peer_id()),
             PeerIdKind::PeerId(peer_id) => Some(*peer_id),
         }
     }
