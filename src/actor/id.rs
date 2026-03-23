@@ -276,7 +276,7 @@ enum PeerIdKind {
 impl PeerIdKind {
     fn peer_id(&self) -> Option<libp2p::PeerId> {
         match self {
-            PeerIdKind::Local => ActorSwarm::with(|s| *s.local_peer_id()),
+            PeerIdKind::Local => ActorSwarm::with(|s| s.local_peer_id()),
             PeerIdKind::PeerId(peer_id) => Some(*peer_id),
         }
     }

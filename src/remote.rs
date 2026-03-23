@@ -105,6 +105,16 @@ pub async fn register_actor_local<A: Actor>(actor_ref: &ActorRef<A>, id: ActorId
     REMOTE_REGISTRY.lock().await.insert(id, entry);
 }
 
+/// Remove an actor from the local REMOTE_REGISTRY by its well-known ActorId.
+/// Returns `true` if the entry was present and removed.
+pub fn unregister_actor_local(id: &ActorId) -> bool {
+    // Use try_lock to avoid blocking (this may be called from a Drop impl).
+    match REMOTE_REGISTRY.try_lock() {
+        Ok(mut registry) => registry.remove(id).is_some(),
+        Err(_) => false,
+    }
+}
+
 pub(crate) struct RemoteRegistryActorRef {
     actor_ref: BoxRegisteredActorRef,
     pub(crate) name: Option<Arc<str>>,
@@ -380,22 +390,6 @@ where
 /// [`RemoteActorRef::for_peer()`] lookups until they are re-registered.
 pub async fn clear_registry() {
     REMOTE_REGISTRY.lock().await.clear();
-}
-
-/// Register an actor in the local actor registry under a specific [`ActorId`],
-/// bypassing Kademlia DHT.
-///
-/// This is useful when you want to use a well-known `ActorId` convention
-/// (e.g., `ActorId::new_with_peer_id(0, local_peer_id)`) so that remote peers
-/// can construct a `RemoteActorRef` directly via [`RemoteActorRef::for_peer()`]
-/// without performing a slow DHT lookup.
-///
-/// Must be called from within a tokio runtime context.
-pub async fn register_actor_local<A: Actor>(actor_ref: &ActorRef<A>, id: ActorId) {
-    REMOTE_REGISTRY
-        .lock()
-        .await
-        .insert(id, RemoteRegistryActorRef::new(actor_ref.clone(), None));
 }
 
 /// Synchronous version of [`register_actor_local`].
