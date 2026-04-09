@@ -1,0 +1,53 @@
+when:
+  - event: [push, pull_request]
+
+variables:
+  - &rust_image "rust:latest"
+
+steps:
+  - name: fmt
+    image: *rust_image
+    commands:
+      - rustup component add rustfmt
+      - cargo fmt --all -- --check
+
+  - name: clippy-serde
+    image: *rust_image
+    commands:
+      - rustup component add clippy
+      - cargo clippy --workspace --features macros,tracing,remote,serde-codec,metrics -- -Dwarnings
+
+  - name: clippy-rkyv
+    image: *rust_image
+    commands:
+      - rustup component add clippy
+      - cargo clippy --workspace --features macros,tracing,remote,rkyv-codec,metrics -- -Dwarnings
+
+  - name: test-serde
+    image: *rust_image
+    commands:
+      - cargo test --workspace --features macros,tracing,remote,serde-codec,metrics
+    depends_on: [fmt]
+
+  - name: test-rkyv
+    image: *rust_image
+    commands:
+      - cargo test --workspace --features macros,tracing,remote,rkyv-codec,metrics
+    depends_on: [fmt]
+
+  - name: test-minimal
+    image: *rust_image
+    commands:
+      - cargo test -p thespis --no-default-features
+      - cargo test -p thespis --no-default-features --features macros
+      - cargo test -p thespis_actors
+      - cargo test -p thespis_macros
+    depends_on: [fmt]
+
+  - name: build-tokio-unstable
+    image: *rust_image
+    environment:
+      RUSTFLAGS: "--cfg tokio_unstable"
+    commands:
+      - cargo build --workspace --features macros,tracing,remote,rkyv-codec,metrics
+    depends_on: [fmt]

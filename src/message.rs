@@ -1,6 +1,6 @@
-//! Messaging infrastructure for actor communication in Kameo.
+//! Messaging infrastructure for actor communication in Thespis.
 //!
-//! This module provides the constructs necessary for handling messages within Kameo,
+//! This module provides the constructs necessary for handling messages within Thespis,
 //! defining how actors communicate and interact. It equips actors with the ability to receive and respond
 //! to both commands that might change their internal state and requests for information which do not alter their state.
 //!
@@ -122,10 +122,10 @@ where
     /// - The [ReplySender], if not `None`, should be used by the delegated responder to send the actual reply.
     ///
     /// ```
-    /// use kameo::message::{Context, Message};
-    /// use kameo::reply::DelegatedReply;
+    /// use thespis::message::{Context, Message};
+    /// use thespis::reply::DelegatedReply;
     ///
-    /// # #[derive(kameo::Actor)]
+    /// # #[derive(thespis::Actor)]
     /// # struct MyActor;
     /// #
     /// struct Msg;
@@ -182,7 +182,7 @@ where
     /// # Example
     ///
     /// ```rust
-    /// use kameo::prelude::*;
+    /// use thespis::prelude::*;
     ///
     /// #[derive(Actor)]
     /// struct MyActor;
@@ -199,7 +199,7 @@ where
     ///         ctx.spawn(async move {
     ///             // This runs independently of the actor
     ///             tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-    ///             
+    ///
     ///             // Process the data...
     ///             if msg.data.is_empty() {
     ///                 Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, "Empty data"))

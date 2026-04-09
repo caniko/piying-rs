@@ -10,7 +10,7 @@
 //! - **Message Serialization**: Automatically serializes and deserializes actor messages for
 //!   network transmission using efficient binary protocols
 //! - **Request-Response Communication**: Implements reliable ask/tell patterns for remote actors
-//!   with configurable timeouts and delivery guarantees  
+//!   with configurable timeouts and delivery guarantees
 //! - **Connection Management**: Manages libp2p connections and handles connection failures,
 //!   retries, and peer disconnections gracefully
 //! - **Actor Lifecycle Integration**: Supports remote actor linking, unlinking, and death
@@ -25,7 +25,7 @@
 //! Messages are automatically routed to the appropriate peer based on the target actor's
 //! peer ID, with transparent handling of network-level concerns.
 //!
-//! The module integrates closely with Kameo's local actor system, allowing remote actors
+//! The module integrates closely with Thespis's local actor system, allowing remote actors
 //! to be used interchangeably with local actors through the same `ActorRef` interface.
 
 use std::{
@@ -59,7 +59,7 @@ use super::_internal::{
     REMOTE_ACTORS, REMOTE_MESSAGES, RemoteActorFns, RemoteMessageFns, RemoteMessageRegistrationID,
 };
 
-const PROTO_NAME: StreamProtocol = StreamProtocol::new("/kameo/messaging/1.0.0");
+const PROTO_NAME: StreamProtocol = StreamProtocol::new("/thespis/messaging/1.0.0");
 
 static REMOTE_ACTORS_MAP: LazyLock<HashMap<&'static str, RemoteActorFns>> = LazyLock::new(|| {
     let mut existing_ids = HashSet::new();
@@ -433,7 +433,7 @@ impl<Req, Resp> From<Config> for request_response::cbor::codec::Codec<Req, Resp>
 #[cfg(feature = "serde-codec")]
 pub type DefaultCodec = request_response::cbor::codec::Codec<SwarmRequest, SwarmResponse>;
 
-/// `Behaviour` is a `NetworkBehaviour` that implements the kameo messaging behaviour
+/// `Behaviour` is a `NetworkBehaviour` that implements the thespis messaging behaviour
 /// on top of the request response protocol.
 ///
 /// When the `serde-codec` feature is enabled, the codec type parameter `C` defaults
@@ -449,7 +449,7 @@ pub struct Behaviour<C: request_response::Codec + Clone + Send + 'static = Defau
     join_set: JoinSet<(ReplyChannel, SwarmResponse)>,
 }
 
-/// `Behaviour` is a `NetworkBehaviour` that implements the kameo messaging behaviour
+/// `Behaviour` is a `NetworkBehaviour` that implements the thespis messaging behaviour
 /// on top of the request response protocol.
 ///
 /// Supply a codec implementing [`request_response::Codec`] via [`Behaviour::with_codec`].
@@ -604,7 +604,7 @@ where
     /// # Arguments
     ///
     /// * `actor_id` - The first actor's ID
-    /// * `actor_remote_id` - The first actor's remote type ID  
+    /// * `actor_remote_id` - The first actor's remote type ID
     /// * `sibling_id` - The second actor's ID to link with
     /// * `sibling_remote_id` - The second actor's remote type ID
     ///

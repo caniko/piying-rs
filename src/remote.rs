@@ -1,8 +1,8 @@
-//! # Remote Actors in Kameo
+//! # Remote Actors in Thespis
 //!
-//! The `remote` module in Kameo provides tools for managing distributed actors across nodes,
+//! The `remote` module in Thespis provides tools for managing distributed actors across nodes,
 //! enabling actors to communicate seamlessly in a peer-to-peer (P2P) network. By leveraging
-//! the [libp2p](https://libp2p.io) library, Kameo allows you to register actors under unique
+//! the [libp2p](https://libp2p.io) library, Thespis allows you to register actors under unique
 //! names and send messages between actors on different nodes as though they were local.
 //!
 //! ## Key Features
@@ -25,7 +25,7 @@
 //! For quick prototyping and development:
 //!
 //! ```ignore
-//! use kameo::remote;
+//! use thespis::remote;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -42,12 +42,12 @@
 //! For production deployments with custom configuration:
 //!
 //! ```ignore
-//! use kameo::remote;
+//! use thespis::remote;
 //! use libp2p::swarm::NetworkBehaviour;
 //!
 //! #[derive(NetworkBehaviour)]
 //! struct MyBehaviour {
-//!     kameo: remote::Behaviour,
+//!     thespis: remote::Behaviour,
 //!     // Add other libp2p behaviors as needed
 //! }
 //!
@@ -103,6 +103,16 @@ pub(crate) static REMOTE_REGISTRY: LazyLock<Mutex<HashMap<ActorId, RemoteRegistr
 pub async fn register_actor_local<A: Actor>(actor_ref: &ActorRef<A>, id: ActorId) {
     let entry = RemoteRegistryActorRef::new(actor_ref.clone(), None);
     REMOTE_REGISTRY.lock().await.insert(id, entry);
+}
+
+/// Remove an actor from the local REMOTE_REGISTRY by its well-known ActorId.
+/// Returns `true` if the entry was present and removed.
+pub fn unregister_actor_local(id: &ActorId) -> bool {
+    // Use try_lock to avoid blocking (this may be called from a Drop impl).
+    match REMOTE_REGISTRY.try_lock() {
+        Ok(mut registry) => registry.remove(id).is_some(),
+        Err(_) => false,
+    }
 }
 
 pub(crate) struct RemoteRegistryActorRef {
@@ -179,7 +189,7 @@ pub(crate) enum BoxRegisteredActorRef {
 /// ## Example with Derive
 ///
 /// ```
-/// use kameo::{Actor, RemoteActor};
+/// use thespis::{Actor, RemoteActor};
 ///
 /// #[derive(Actor, RemoteActor)]
 /// pub struct MyActor;
@@ -188,7 +198,7 @@ pub(crate) enum BoxRegisteredActorRef {
 /// ## Example Manual Implementation
 ///
 /// ```
-/// use kameo::remote::RemoteActor;
+/// use thespis::remote::RemoteActor;
 ///
 /// pub struct MyActor;
 ///
@@ -221,7 +231,7 @@ pub trait RemoteMessage<M> {
 ///
 /// Requires the `serde-codec` feature (uses CBOR for transport encoding).
 ///
-/// For production use or custom configuration, use `kameo::remote::Behaviour`
+/// For production use or custom configuration, use `thespis::remote::Behaviour`
 /// with your own libp2p swarm setup.
 ///
 /// # Example
@@ -251,7 +261,7 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 
     #[derive(NetworkBehaviour)]
     struct BootstrapBehaviour {
-        kameo: Behaviour,
+        thespis: Behaviour,
         mdns: mdns::tokio::Behaviour,
     }
 
@@ -265,14 +275,14 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
         .with_quic()
         .with_behaviour(|key| {
             let local_peer_id = key.public().to_peer_id();
-            let kameo = Behaviour::new(local_peer_id, messaging::Config::default());
+            let thespis = Behaviour::new(local_peer_id, messaging::Config::default());
             let mdns = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)?;
 
-            Ok(BootstrapBehaviour { kameo, mdns })
+            Ok(BootstrapBehaviour { thespis, mdns })
         })?
         .build();
 
-    swarm.behaviour().kameo.try_init_global()?;
+    swarm.behaviour().thespis.try_init_global()?;
 
     swarm.listen_on(addr.parse()?)?;
 
@@ -313,7 +323,7 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 
 /// Run a pre-built libp2p swarm as the actor swarm event loop.
 ///
-/// This is the most flexible way to use kameo's remote actors with custom
+/// This is the most flexible way to use thespis's remote actors with custom
 /// transports. You build the `Swarm` yourself (with any transport, encryption,
 /// and multiplexing) and include [`Behaviour`] in your composed `NetworkBehaviour`.
 ///
@@ -321,18 +331,18 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 ///
 /// Before calling this function, you must:
 /// 1. Build a `Swarm` containing [`Behaviour`] in its `NetworkBehaviour`
-/// 2. Call [`Behaviour::try_init_global()`] on the kameo behaviour
+/// 2. Call [`Behaviour::try_init_global()`] on the thespis behaviour
 /// 3. Call `swarm.listen_on(addr)` if you want the swarm to accept connections
 ///
 /// # Example
 ///
-/// ```no_run
-/// use kameo::remote::{self, codec::KameoRkyvCodec};
+/// ```ignore
+/// use thespis::remote::{self, codec::ThespisRkyvCodec};
 /// use libp2p::{swarm::NetworkBehaviour, noise, tcp, yamux};
 ///
 /// #[derive(NetworkBehaviour)]
 /// struct MyBehaviour {
-///     kameo: remote::Behaviour<KameoRkyvCodec>,
+///     thespis: remote::Behaviour<ThespisRkyvCodec>,
 /// }
 ///
 /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
@@ -342,14 +352,14 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 ///     .with_behaviour(|key| {
 ///         let peer_id = key.public().to_peer_id();
 ///         let config = remote::messaging::Config::default();
-///         let codec = KameoRkyvCodec::new(&config);
+///         let codec = ThespisRkyvCodec::new(&config);
 ///         Ok(MyBehaviour {
-///             kameo: remote::Behaviour::with_codec(peer_id, config, codec),
+///             thespis: remote::Behaviour::with_codec(peer_id, config, codec),
 ///         })
 ///     })?
 ///     .build();
 ///
-/// swarm.behaviour().kameo.try_init_global()?;
+/// swarm.behaviour().thespis.try_init_global()?;
 /// swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse()?)?;
 ///
 /// let peer_id = remote::run_swarm(swarm);
@@ -380,22 +390,6 @@ where
 /// [`RemoteActorRef::for_peer()`] lookups until they are re-registered.
 pub async fn clear_registry() {
     REMOTE_REGISTRY.lock().await.clear();
-}
-
-/// Register an actor in the local actor registry under a specific [`ActorId`],
-/// bypassing Kademlia DHT.
-///
-/// This is useful when you want to use a well-known `ActorId` convention
-/// (e.g., `ActorId::new_with_peer_id(0, local_peer_id)`) so that remote peers
-/// can construct a `RemoteActorRef` directly via [`RemoteActorRef::for_peer()`]
-/// without performing a slow DHT lookup.
-///
-/// Must be called from within a tokio runtime context.
-pub async fn register_actor_local<A: Actor>(actor_ref: &ActorRef<A>, id: ActorId) {
-    REMOTE_REGISTRY
-        .lock()
-        .await
-        .insert(id, RemoteRegistryActorRef::new(actor_ref.clone(), None));
 }
 
 /// Synchronous version of [`register_actor_local`].

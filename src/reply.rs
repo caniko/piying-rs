@@ -1,4 +1,4 @@
-//! Constructs for handling replies and errors in Kameo's actor communication.
+//! Constructs for handling replies and errors in Thespis's actor communication.
 //!
 //! This module provides the [`Reply`] trait and associated structures for managing message replies within the actor
 //! system. It enables actors to communicate effectively, handling both successful outcomes and errors through a
@@ -6,7 +6,7 @@
 //!
 //! **Reply Trait Overview**
 //!
-//! The `Reply` trait plays a crucial role in Kameo by defining how actors respond to messages.
+//! The `Reply` trait plays a crucial role in Thespis by defining how actors respond to messages.
 //! It is implemented for a variety of common types, facilitating easy adoption and use.
 //! Special attention is given to the `Result` and [`DelegatedReply`] types:
 //! - Implementations for `Result` allow errors returned by actor handlers to be communicated back as
@@ -79,7 +79,7 @@ pub type BoxReplySender = oneshot::Sender<Result<BoxReply, BoxSendError>>;
 /// # Example
 ///
 /// ```
-/// use kameo::Reply;
+/// use thespis::Reply;
 ///
 /// #[derive(Reply)]
 /// pub struct Foo { }
@@ -260,7 +260,7 @@ where
 /// ## Basic forwarding
 ///
 /// ```
-/// use kameo::{prelude::*, reply::ForwardedReply};
+/// use thespis::{prelude::*, reply::ForwardedReply};
 /// use std::collections::HashMap;
 ///
 /// #[derive(Actor)]
@@ -304,7 +304,7 @@ where
 /// ## Error handling without forwarding
 ///
 /// ```
-/// use kameo::{prelude::*, reply::ForwardedReply};
+/// use thespis::{prelude::*, reply::ForwardedReply};
 ///
 /// #[derive(Debug)]
 /// enum RouterError {
@@ -415,7 +415,7 @@ where
     /// # Example
     ///
     /// ```rust
-    /// use kameo::reply::ForwardedReply;
+    /// use thespis::reply::ForwardedReply;
     ///
     /// // Create a direct successful response
     /// let reply: ForwardedReply<(), String> = ForwardedReply::from_ok("Success!".to_string());
@@ -434,7 +434,7 @@ where
     /// # Example
     ///
     /// ```rust
-    /// use kameo::reply::ForwardedReply;
+    /// use thespis::reply::ForwardedReply;
     /// use std::{error, fmt};
     ///
     /// #[derive(Debug)]
@@ -468,7 +468,7 @@ where
     /// # Example
     ///
     /// ```rust
-    /// use kameo::reply::ForwardedReply;
+    /// use thespis::reply::ForwardedReply;
     /// use std::{error, fmt};
     ///
     /// #[derive(Debug)]
@@ -634,7 +634,7 @@ macro_rules! impl_infallible_reply {
 }
 
 impl_infallible_reply!([
-    // Kameo types
+    // Thespis types
     ActorId,
     {A: Actor} ActorRef<A>,
     {A: Actor} PreparedActor<A>,

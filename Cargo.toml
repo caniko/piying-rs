@@ -3,7 +3,7 @@ resolver = "2"
 members = [".", "actors", "macros"]
 
 [workspace.dependencies]
-kameo = { path = ".", version = "0.19.2" }
+thespis = { path = ".", version = "0.19.2" }
 
 futures = "0.3"
 tokio = "1.47"
@@ -17,13 +17,13 @@ codegen-units = 1
 all-features = true
 
 [package]
-name = "kameo"
+name = "thespis"
 version = "0.19.2"
 edition = "2024"
 rust-version = "1.88.0"
 description = "Fault-tolerant Async Actors Built on Tokio"
 readme = "README.md"
-repository = "https://github.com/tqwewe/kameo"
+repository = "https://codeberg.org/caniko/rs-thespis"
 license = "MIT OR Apache-2.0"
 keywords = ["actor", "tokio"]
 categories = ["asynchronous", "concurrency", "rust-patterns"]
@@ -31,7 +31,7 @@ include = ["/src"]
 
 [features]
 default = ["macros", "tracing"]
-macros = ["dep:kameo_macros"]
+macros = ["dep:thespis_macros"]
 remote = [
   "dep:async-trait",
   "dep:const-fnv1a-hash",
@@ -50,7 +50,7 @@ metrics = ["dep:metrics"]
 hotpath = ["dep:hotpath", "hotpath/hotpath"]
 
 [dependencies]
-kameo_macros = { version = "0.19.0", path = "./macros", optional = true }
+thespis_macros = { version = "0.19.0", path = "./macros", optional = true }
 
 async-trait = { version = "0.1", optional = true }
 const-fnv1a-hash = { version = "1.1.0", optional = true }
@@ -85,37 +85,15 @@ tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
 tracing = { version = "0.1", optional = true }
 
 [dev-dependencies]
-criterion = { version = "0.8", features = ["async_tokio"] }
-kameo_actors = { path = "actors" }
-libp2p = { version = "0.56.0", features = ["serde"] }
-metrics-exporter-prometheus = "0.18"
+thespis_actors = { path = "actors" }
 tokio = { version = "1", features = [
   "macros",
   "rt",
   "rt-multi-thread",
-  "signal",
   "sync",
   "time",
 ] }
-tokio-stream = { version = "0.1.15", features = ["time"] }
 tokio-test = "0.4.4"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-[[example]]
-name = "remote"
-required-features = ["remote", "serde-codec"]
-
-[[example]]
-name = "custom_swarm"
-required-features = ["remote", "serde-codec"]
-
-[[example]]
-name = "prometheus_metrics"
-required-features = ["metrics"]
-
-[[bench]]
-name = "overhead"
-harness = false
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

@@ -35,7 +35,7 @@ thread_local! {
     static THREAD_LOCAL_SWARM: RefCell<Option<Arc<ActorSwarm>>> = const { RefCell::new(None) };
 }
 
-/// `ActorSwarm` is the core component for remote actors within Kameo.
+/// `ActorSwarm` is the core component for remote actors within Thespis.
 ///
 /// It is responsible for managing a swarm of distributed nodes using libp2p,
 /// enabling peer discovery, actor registration, and remote message routing.
@@ -331,7 +331,7 @@ impl ActorSwarm {
 /// # Example
 ///
 /// ```rust,no_run
-/// # use kameo::{Actor, RemoteActor, actor::RemoteActorRef};
+/// # use thespis::{Actor, RemoteActor, actor::RemoteActorRef};
 /// # use futures::TryStreamExt;
 /// #
 /// # #[derive(Actor, RemoteActor)]
@@ -693,7 +693,7 @@ mod tests {
 
         // We can't assert the same PeerId across calls (concurrent tests
         // may overwrite), but both must be Some.
-        assert!(ActorSwarm::with(|s| *s.local_peer_id()).is_some());
+        assert!(ActorSwarm::with(|s| s.local_peer_id()).is_some());
         assert!(ActorSwarm::get().is_some());
     }
 
@@ -712,9 +712,9 @@ mod tests {
         let guard = ActorSwarm::set_thread_local(local_tx, local_peer);
 
         // Thread-local should take precedence
-        assert_eq!(ActorSwarm::with(|s| *s.local_peer_id()), Some(local_peer));
+        assert_eq!(ActorSwarm::with(|s| s.local_peer_id()), Some(local_peer));
         assert_eq!(
-            ActorSwarm::get().map(|s| *s.local_peer_id()),
+            ActorSwarm::get().map(|s| s.local_peer_id()),
             Some(local_peer)
         );
 
@@ -731,14 +731,14 @@ mod tests {
         let guard = ActorSwarm::set_thread_local(tx, peer);
 
         // Thread-local is set
-        assert_eq!(ActorSwarm::with(|s| *s.local_peer_id()), Some(peer));
+        assert_eq!(ActorSwarm::with(|s| s.local_peer_id()), Some(peer));
 
         // Drop guard
         drop(guard);
 
         // Thread-local should be cleared — get/with should not return
         // our peer (may return a global set by another test, or None)
-        let current = ActorSwarm::with(|s| *s.local_peer_id());
+        let current = ActorSwarm::with(|s| s.local_peer_id());
         assert_ne!(current, Some(peer));
     }
 }

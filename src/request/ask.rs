@@ -156,17 +156,17 @@ where
     /// # Example
     ///
     /// ```
-    /// # use kameo::Actor;
-    /// # use kameo::actor::Spawn;
+    /// # use thespis::Actor;
+    /// # use thespis::actor::Spawn;
     /// #
-    /// # #[derive(kameo::Actor)]
+    /// # #[derive(thespis::Actor)]
     /// # struct MyActor;
     /// #
     /// # struct Msg;
     /// #
-    /// # impl kameo::message::Message<Msg> for MyActor {
+    /// # impl thespis::message::Message<Msg> for MyActor {
     /// #     type Reply = ();
-    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut kameo::message::Context<Self, Self::Reply>) -> Self::Reply { }
+    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut thespis::message::Context<Self, Self::Reply>) -> Self::Reply { }
     /// # }
     /// #
     /// # tokio_test::block_on(async {
@@ -325,17 +325,17 @@ where
     /// # Example
     ///
     /// ```
-    /// # use kameo::Actor;
-    /// # use kameo::actor::Spawn;
+    /// # use thespis::Actor;
+    /// # use thespis::actor::Spawn;
     /// #
     /// # #[derive(Actor)]
     /// # struct MyActor;
     /// #
     /// # struct Msg;
     /// #
-    /// # impl kameo::message::Message<Msg> for MyActor {
+    /// # impl thespis::message::Message<Msg> for MyActor {
     /// #     type Reply = ();
-    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut kameo::message::Context<Self, Self::Reply>) -> Self::Reply { }
+    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut thespis::message::Context<Self, Self::Reply>) -> Self::Reply { }
     /// # }
     /// #
     /// # tokio_test::block_on(async {
@@ -436,17 +436,17 @@ where
     /// # Example
     ///
     /// ```
-    /// # use kameo::Actor;
-    /// # use kameo::actor::Spawn;
+    /// # use thespis::Actor;
+    /// # use thespis::actor::Spawn;
     /// #
-    /// # #[derive(kameo::Actor)]
+    /// # #[derive(thespis::Actor)]
     /// # struct MyActor;
     /// #
     /// # struct Msg;
     /// #
-    /// # impl kameo::message::Message<Msg> for MyActor {
+    /// # impl thespis::message::Message<Msg> for MyActor {
     /// #     type Reply = ();
-    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut kameo::message::Context<Self, Self::Reply>) -> Self::Reply { }
+    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut thespis::message::Context<Self, Self::Reply>) -> Self::Reply { }
     /// # }
     /// #
     /// # tokio_test::block_on(async {
