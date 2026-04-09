@@ -17,8 +17,8 @@
 //! # Example
 //!
 //! ```
-//! use kameo::prelude::*;
-//! use kameo_actors::pool::{ActorPool, Broadcast, Dispatch};
+//! use thespis::prelude::*;
+//! use thespis_actors::pool::{ActorPool, Broadcast, Dispatch};
 //!
 //! #[derive(Actor)]
 //! struct MyWorker;
@@ -49,7 +49,7 @@ use futures::{
     Future, FutureExt, TryFutureExt,
     future::{BoxFuture, join_all},
 };
-use kameo::{error::Infallible, prelude::*};
+use thespis::{error::Infallible, prelude::*};
 
 enum Factory<A: Actor> {
     Sync(Box<dyn FnMut() -> ActorRef<A> + Send + Sync + 'static>),

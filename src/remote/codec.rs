@@ -156,7 +156,7 @@ where
 }
 
 // ---------------------------------------------------------------------------
-// KameoRkyvCodec — thin wrapper over libp2p_rkyv_codec for kameo wire types
+// ThespisRkyvCodec — thin wrapper over libp2p_rkyv_codec for thespis wire types
 // ---------------------------------------------------------------------------
 
 #[cfg(feature = "rkyv-codec")]
@@ -170,19 +170,19 @@ mod rkyv_transport {
 
     use super::super::messaging::{Config, SwarmRequest, SwarmResponse};
 
-    /// Length-prefixed rkyv codec for kameo's remote messaging protocol.
+    /// Length-prefixed rkyv codec for thespis's remote messaging protocol.
     ///
     /// `SwarmRequest`/`SwarmResponse` use wire-friendly field types and derive
     /// rkyv directly, so this is a thin delegation to [`RkyvCodec`] with
     /// construction from a [`Config`].
-    pub struct KameoRkyvCodec {
+    pub struct ThespisRkyvCodec {
         inner: RkyvCodec<SwarmRequest, SwarmResponse>,
     }
 
-    impl KameoRkyvCodec {
-        /// Creates a new `KameoRkyvCodec` from the messaging configuration.
+    impl ThespisRkyvCodec {
+        /// Creates a new `ThespisRkyvCodec` from the messaging configuration.
         pub fn new(config: &Config) -> Self {
-            KameoRkyvCodec {
+            ThespisRkyvCodec {
                 inner: RkyvCodec::new(
                     config.request_size_maximum(),
                     config.response_size_maximum(),
@@ -191,7 +191,7 @@ mod rkyv_transport {
         }
     }
 
-    impl Clone for KameoRkyvCodec {
+    impl Clone for ThespisRkyvCodec {
         fn clone(&self) -> Self {
             Self {
                 inner: RkyvCodec::new(
@@ -202,9 +202,9 @@ mod rkyv_transport {
         }
     }
 
-    impl std::fmt::Debug for KameoRkyvCodec {
+    impl std::fmt::Debug for ThespisRkyvCodec {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            f.debug_struct("KameoRkyvCodec")
+            f.debug_struct("ThespisRkyvCodec")
                 .field("request_size_maximum", &self.inner.request_size_maximum)
                 .field("response_size_maximum", &self.inner.response_size_maximum)
                 .finish()
@@ -212,7 +212,7 @@ mod rkyv_transport {
     }
 
     #[async_trait]
-    impl request_response::Codec for KameoRkyvCodec {
+    impl request_response::Codec for ThespisRkyvCodec {
         type Protocol = StreamProtocol;
         type Request = SwarmRequest;
         type Response = SwarmResponse;
@@ -266,7 +266,7 @@ mod rkyv_transport {
 }
 
 #[cfg(feature = "rkyv-codec")]
-pub use rkyv_transport::KameoRkyvCodec;
+pub use rkyv_transport::ThespisRkyvCodec;
 
 // ---------------------------------------------------------------------------
 // Tests

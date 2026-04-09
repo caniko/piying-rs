@@ -33,20 +33,20 @@ pub fn bounded<A: Actor>(buffer: usize) -> (MailboxSender<A>, MailboxReceiver<A>
         MailboxSender {
             inner: MailboxSenderInner::Bounded(tx),
             #[cfg(feature = "metrics")]
-            messages_sent: metrics::counter!("kameo_messages_sent", "actor_name" => A::name()),
+            messages_sent: metrics::counter!("thespis_messages_sent", "actor_name" => A::name()),
             #[cfg(feature = "metrics")]
-            lifecycle_signals_sent: metrics::counter!("kameo_lifecycle_sent", "actor_name" => A::name()),
+            lifecycle_signals_sent: metrics::counter!("thespis_lifecycle_sent", "actor_name" => A::name()),
             #[cfg(feature = "metrics")]
-            link_died_signals_sent: metrics::counter!("kameo_link_died_sent", "actor_name" => A::name()),
+            link_died_signals_sent: metrics::counter!("thespis_link_died_sent", "actor_name" => A::name()),
         },
         MailboxReceiver {
             inner: MailboxReceiverInner::Bounded(rx),
             #[cfg(feature = "metrics")]
-            messages_received: metrics::counter!("kameo_messages_received", "actor_name" => A::name()),
+            messages_received: metrics::counter!("thespis_messages_received", "actor_name" => A::name()),
             #[cfg(feature = "metrics")]
-            lifecycle_signals_received: metrics::counter!("kameo_lifecycle_received", "actor_name" => A::name()),
+            lifecycle_signals_received: metrics::counter!("thespis_lifecycle_received", "actor_name" => A::name()),
             #[cfg(feature = "metrics")]
-            link_died_signals_received: metrics::counter!("kameo_link_died_received", "actor_name" => A::name()),
+            link_died_signals_received: metrics::counter!("thespis_link_died_received", "actor_name" => A::name()),
         },
     )
 }
@@ -64,20 +64,20 @@ pub fn unbounded<A: Actor>() -> (MailboxSender<A>, MailboxReceiver<A>) {
         MailboxSender {
             inner: MailboxSenderInner::Unbounded(tx),
             #[cfg(feature = "metrics")]
-            messages_sent: metrics::counter!("kameo_messages_sent", "actor_name" => A::name()),
+            messages_sent: metrics::counter!("thespis_messages_sent", "actor_name" => A::name()),
             #[cfg(feature = "metrics")]
-            lifecycle_signals_sent: metrics::counter!("kameo_lifecycle_sent", "actor_name" => A::name()),
+            lifecycle_signals_sent: metrics::counter!("thespis_lifecycle_sent", "actor_name" => A::name()),
             #[cfg(feature = "metrics")]
-            link_died_signals_sent: metrics::counter!("kameo_link_died_sent", "actor_name" => A::name()),
+            link_died_signals_sent: metrics::counter!("thespis_link_died_sent", "actor_name" => A::name()),
         },
         MailboxReceiver {
             inner: MailboxReceiverInner::Unbounded(rx),
             #[cfg(feature = "metrics")]
-            messages_received: metrics::counter!("kameo_messages_received", "actor_name" => A::name()),
+            messages_received: metrics::counter!("thespis_messages_received", "actor_name" => A::name()),
             #[cfg(feature = "metrics")]
-            lifecycle_signals_received: metrics::counter!("kameo_lifecycle_received", "actor_name" => A::name()),
+            lifecycle_signals_received: metrics::counter!("thespis_lifecycle_received", "actor_name" => A::name()),
             #[cfg(feature = "metrics")]
-            link_died_signals_received: metrics::counter!("kameo_link_died_received", "actor_name" => A::name()),
+            link_died_signals_received: metrics::counter!("thespis_link_died_received", "actor_name" => A::name()),
         },
     )
 }

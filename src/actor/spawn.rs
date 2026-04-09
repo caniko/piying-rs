@@ -83,9 +83,9 @@ impl<A: Actor> PreparedActor<A> {
     /// # Example
     ///
     /// ```no_run
-    /// # use kameo::Actor;
-    /// # use kameo::actor::{PreparedActor, Spawn};
-    /// # use kameo::message::{Context, Message};
+    /// # use thespis::Actor;
+    /// # use thespis::actor::{PreparedActor, Spawn};
+    /// # use thespis::message::{Context, Message};
     ///
     /// # #[derive(Actor)]
     /// # struct MyActor;

@@ -17,9 +17,9 @@
 //! ```
 //! use std::collections::HashMap;
 //!
-//! use kameo::prelude::*;
-//! use kameo_actors::DeliveryStrategy;
-//! use kameo_actors::message_queue::{
+//! use thespis::prelude::*;
+//! use thespis_actors::DeliveryStrategy;
+//! use thespis_actors::message_queue::{
 //!     BasicConsume, BasicPublish, ExchangeDeclare, ExchangeType, MessageQueue, QueueBind,
 //!     QueueDeclare,
 //! };
@@ -88,7 +88,7 @@ use std::{
 };
 
 use glob::{MatchOptions, Pattern};
-use kameo::prelude::*;
+use thespis::prelude::*;
 
 use crate::DeliveryStrategy;
 

@@ -25,7 +25,7 @@
 //! For quick prototyping and development:
 //!
 //! ```ignore
-//! use kameo::remote;
+//! use thespis::remote;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -42,12 +42,12 @@
 //! For production deployments with custom configuration:
 //!
 //! ```ignore
-//! use kameo::remote;
+//! use thespis::remote;
 //! use libp2p::swarm::NetworkBehaviour;
 //!
 //! #[derive(NetworkBehaviour)]
 //! struct MyBehaviour {
-//!     kameo: remote::Behaviour,
+//!     thespis: remote::Behaviour,
 //!     // Add other libp2p behaviors as needed
 //! }
 //!
@@ -189,7 +189,7 @@ pub(crate) enum BoxRegisteredActorRef {
 /// ## Example with Derive
 ///
 /// ```
-/// use kameo::{Actor, RemoteActor};
+/// use thespis::{Actor, RemoteActor};
 ///
 /// #[derive(Actor, RemoteActor)]
 /// pub struct MyActor;
@@ -198,7 +198,7 @@ pub(crate) enum BoxRegisteredActorRef {
 /// ## Example Manual Implementation
 ///
 /// ```
-/// use kameo::remote::RemoteActor;
+/// use thespis::remote::RemoteActor;
 ///
 /// pub struct MyActor;
 ///
@@ -231,7 +231,7 @@ pub trait RemoteMessage<M> {
 ///
 /// Requires the `serde-codec` feature (uses CBOR for transport encoding).
 ///
-/// For production use or custom configuration, use `kameo::remote::Behaviour`
+/// For production use or custom configuration, use `thespis::remote::Behaviour`
 /// with your own libp2p swarm setup.
 ///
 /// # Example
@@ -261,7 +261,7 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 
     #[derive(NetworkBehaviour)]
     struct BootstrapBehaviour {
-        kameo: Behaviour,
+        thespis: Behaviour,
         mdns: mdns::tokio::Behaviour,
     }
 
@@ -275,14 +275,14 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
         .with_quic()
         .with_behaviour(|key| {
             let local_peer_id = key.public().to_peer_id();
-            let kameo = Behaviour::new(local_peer_id, messaging::Config::default());
+            let thespis = Behaviour::new(local_peer_id, messaging::Config::default());
             let mdns = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)?;
 
-            Ok(BootstrapBehaviour { kameo, mdns })
+            Ok(BootstrapBehaviour { thespis, mdns })
         })?
         .build();
 
-    swarm.behaviour().kameo.try_init_global()?;
+    swarm.behaviour().thespis.try_init_global()?;
 
     swarm.listen_on(addr.parse()?)?;
 
@@ -323,7 +323,7 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 
 /// Run a pre-built libp2p swarm as the actor swarm event loop.
 ///
-/// This is the most flexible way to use kameo's remote actors with custom
+/// This is the most flexible way to use thespis's remote actors with custom
 /// transports. You build the `Swarm` yourself (with any transport, encryption,
 /// and multiplexing) and include [`Behaviour`] in your composed `NetworkBehaviour`.
 ///
@@ -331,18 +331,18 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 ///
 /// Before calling this function, you must:
 /// 1. Build a `Swarm` containing [`Behaviour`] in its `NetworkBehaviour`
-/// 2. Call [`Behaviour::try_init_global()`] on the kameo behaviour
+/// 2. Call [`Behaviour::try_init_global()`] on the thespis behaviour
 /// 3. Call `swarm.listen_on(addr)` if you want the swarm to accept connections
 ///
 /// # Example
 ///
 /// ```no_run
-/// use kameo::remote::{self, codec::KameoRkyvCodec};
+/// use thespis::remote::{self, codec::ThespisRkyvCodec};
 /// use libp2p::{swarm::NetworkBehaviour, noise, tcp, yamux};
 ///
 /// #[derive(NetworkBehaviour)]
 /// struct MyBehaviour {
-///     kameo: remote::Behaviour<KameoRkyvCodec>,
+///     thespis: remote::Behaviour<ThespisRkyvCodec>,
 /// }
 ///
 /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
@@ -352,14 +352,14 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 ///     .with_behaviour(|key| {
 ///         let peer_id = key.public().to_peer_id();
 ///         let config = remote::messaging::Config::default();
-///         let codec = KameoRkyvCodec::new(&config);
+///         let codec = ThespisRkyvCodec::new(&config);
 ///         Ok(MyBehaviour {
-///             kameo: remote::Behaviour::with_codec(peer_id, config, codec),
+///             thespis: remote::Behaviour::with_codec(peer_id, config, codec),
 ///         })
 ///     })?
 ///     .build();
 ///
-/// swarm.behaviour().kameo.try_init_global()?;
+/// swarm.behaviour().thespis.try_init_global()?;
 /// swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse()?)?;
 ///
 /// let peer_id = remote::run_swarm(swarm);

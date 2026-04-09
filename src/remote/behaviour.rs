@@ -34,12 +34,12 @@ use super::{
 /// # Example
 ///
 /// ```rust
-/// use kameo::remote;
+/// use thespis::remote;
 /// use libp2p::{swarm::NetworkBehaviour, PeerId};
 ///
 /// #[derive(NetworkBehaviour)]
 /// struct MyBehaviour {
-///     kameo: remote::Behaviour,
+///     thespis: remote::Behaviour,
 ///     // other behaviours...
 /// }
 ///
@@ -88,7 +88,7 @@ impl Behaviour<messaging::DefaultCodec> {
     /// # Example
     ///
     /// ```rust
-    /// use kameo::remote;
+    /// use thespis::remote;
     /// use libp2p::PeerId;
     ///
     /// let peer_id = PeerId::random();
@@ -293,7 +293,7 @@ where
 /// # Example
 ///
 /// ```no_run
-/// use kameo::remote;
+/// use thespis::remote;
 /// use libp2p::swarm::SwarmEvent;
 /// #
 /// # let swarm_event: SwarmEvent<remote::Event> = todo!();

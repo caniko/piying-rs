@@ -331,7 +331,7 @@ impl ActorSwarm {
 /// # Example
 ///
 /// ```rust,no_run
-/// # use kameo::{Actor, RemoteActor, actor::RemoteActorRef};
+/// # use thespis::{Actor, RemoteActor, actor::RemoteActorRef};
 /// # use futures::TryStreamExt;
 /// #
 /// # #[derive(Actor, RemoteActor)]

@@ -59,7 +59,7 @@ use super::_internal::{
     REMOTE_ACTORS, REMOTE_MESSAGES, RemoteActorFns, RemoteMessageFns, RemoteMessageRegistrationID,
 };
 
-const PROTO_NAME: StreamProtocol = StreamProtocol::new("/kameo/messaging/1.0.0");
+const PROTO_NAME: StreamProtocol = StreamProtocol::new("/thespis/messaging/1.0.0");
 
 static REMOTE_ACTORS_MAP: LazyLock<HashMap<&'static str, RemoteActorFns>> = LazyLock::new(|| {
     let mut existing_ids = HashSet::new();
@@ -433,7 +433,7 @@ impl<Req, Resp> From<Config> for request_response::cbor::codec::Codec<Req, Resp>
 #[cfg(feature = "serde-codec")]
 pub type DefaultCodec = request_response::cbor::codec::Codec<SwarmRequest, SwarmResponse>;
 
-/// `Behaviour` is a `NetworkBehaviour` that implements the kameo messaging behaviour
+/// `Behaviour` is a `NetworkBehaviour` that implements the thespis messaging behaviour
 /// on top of the request response protocol.
 ///
 /// When the `serde-codec` feature is enabled, the codec type parameter `C` defaults
@@ -449,7 +449,7 @@ pub struct Behaviour<C: request_response::Codec + Clone + Send + 'static = Defau
     join_set: JoinSet<(ReplyChannel, SwarmResponse)>,
 }
 
-/// `Behaviour` is a `NetworkBehaviour` that implements the kameo messaging behaviour
+/// `Behaviour` is a `NetworkBehaviour` that implements the thespis messaging behaviour
 /// on top of the request response protocol.
 ///
 /// Supply a codec implementing [`request_response::Codec`] via [`Behaviour::with_codec`].

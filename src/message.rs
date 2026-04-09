@@ -122,10 +122,10 @@ where
     /// - The [ReplySender], if not `None`, should be used by the delegated responder to send the actual reply.
     ///
     /// ```
-    /// use kameo::message::{Context, Message};
-    /// use kameo::reply::DelegatedReply;
+    /// use thespis::message::{Context, Message};
+    /// use thespis::reply::DelegatedReply;
     ///
-    /// # #[derive(kameo::Actor)]
+    /// # #[derive(thespis::Actor)]
     /// # struct MyActor;
     /// #
     /// struct Msg;
@@ -182,7 +182,7 @@ where
     /// # Example
     ///
     /// ```rust
-    /// use kameo::prelude::*;
+    /// use thespis::prelude::*;
     ///
     /// #[derive(Actor)]
     /// struct MyActor;
