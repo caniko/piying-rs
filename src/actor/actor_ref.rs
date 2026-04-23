@@ -1500,10 +1500,7 @@ where
     ///
     /// This is infallible — it never fails because it doesn't depend on global state.
     /// Uses the well-known `ActorId(0, peer_id)` convention.
-    pub fn for_peer_with_sender(
-        peer_id: libp2p::PeerId,
-        swarm_tx: remote::SwarmSender,
-    ) -> Self {
+    pub fn for_peer_with_sender(peer_id: libp2p::PeerId, swarm_tx: remote::SwarmSender) -> Self {
         let actor_id = ActorId::new_with_peer_id(0, peer_id);
         Self {
             id: actor_id,

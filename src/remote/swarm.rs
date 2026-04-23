@@ -642,7 +642,9 @@ mod tests {
             reply: reply_tx,
         });
 
-        let cmd = rx.try_recv().expect("cloned sender should deliver the command");
+        let cmd = rx
+            .try_recv()
+            .expect("cloned sender should deliver the command");
         assert!(matches!(cmd, SwarmCommand::Unregister { .. }));
     }
 
