@@ -85,11 +85,17 @@ where
 
             request_id
         } else {
-            let request_id = RequestId::Outbound(
-                self.request_response
-                    .send_request(peer_id, remote(shared_data)),
+            let request = remote(shared_data);
+            let summary = request.summary();
+            let request_id = RequestId::Outbound(self.request_response.send_request(peer_id, request));
+            self.requests.insert(
+                request_id,
+                RequestContext {
+                    peer_id: *peer_id,
+                    summary,
+                    reply,
+                },
             );
-            self.requests.insert(request_id, (*peer_id, reply));
 
             Some(request_id)
         }
@@ -129,21 +135,52 @@ where
             } => {
                 let remote_err: RemoteSendError = error.into();
                 match self.requests.remove(&RequestId::Outbound(request_id)) {
-                    Some((_, Some(tx))) => {
+                    Some(RequestContext {
+                        summary,
+                        reply: Some(tx),
+                        ..
+                    }) => {
+                        #[cfg(not(feature = "tracing"))]
+                        let _ = &summary;
+                        #[cfg(feature = "tracing")]
+                        tracing::warn!(%peer, %connection_id, %request_id, %summary, error = %remote_err, "thespis outbound request failed");
                         let _ = tx.send(SwarmResponse::OutboundFailure(
                             WireRemoteSendError::from_infallible(&remote_err),
                         ));
                         (false, None)
                     }
-                    Some((_, None)) | None => (
-                        false,
-                        Some(Event::OutboundFailure {
-                            peer,
-                            connection_id,
-                            request_id,
-                            error: remote_err,
-                        }),
-                    ),
+                    Some(RequestContext {
+                        summary,
+                        reply: None,
+                        ..
+                    }) => {
+                        #[cfg(not(feature = "tracing"))]
+                        let _ = &summary;
+                        #[cfg(feature = "tracing")]
+                        tracing::warn!(%peer, %connection_id, %request_id, %summary, error = %remote_err, "thespis outbound request failed");
+                        (
+                            false,
+                            Some(Event::OutboundFailure {
+                                peer,
+                                connection_id,
+                                request_id,
+                                error: remote_err,
+                            }),
+                        )
+                    }
+                    None => {
+                        #[cfg(feature = "tracing")]
+                        tracing::warn!(%peer, %connection_id, %request_id, error = %remote_err, "thespis outbound request failed for unknown request context");
+                        (
+                            false,
+                            Some(Event::OutboundFailure {
+                                peer,
+                                connection_id,
+                                request_id,
+                                error: remote_err,
+                            }),
+                        )
+                    }
                 }
             }
             request_response::Event::InboundFailure {
@@ -366,12 +403,28 @@ where
         res: SwarmResponse,
     ) -> Option<Event> {
         match self.requests.remove(&RequestId::Outbound(req_id)) {
-            Some((_, Some(tx))) => {
+            Some(RequestContext {
+                summary,
+                reply: Some(tx),
+                ..
+            }) => {
+                #[cfg(not(feature = "tracing"))]
+                let _ = &summary;
+                #[cfg(feature = "tracing")]
+                tracing::trace!(%peer, %connection_id, %req_id, %summary, response = %res.summary(), "thespis response received");
                 // Reply to channel
                 let _ = tx.send(res);
                 None
             }
-            Some((_, None)) => {
+            Some(RequestContext {
+                summary,
+                reply: None,
+                ..
+            }) => {
+                #[cfg(not(feature = "tracing"))]
+                let _ = &summary;
+                #[cfg(feature = "tracing")]
+                tracing::trace!(%peer, %connection_id, %req_id, %summary, response = %res.summary(), "thespis response received");
                 // Emit event
                 Some(Event::from_swarm_resp(
                     res,

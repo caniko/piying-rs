@@ -89,7 +89,7 @@ pub struct Behaviour<C: request_response::Codec + Clone + Send + 'static = Defau
     request_response: request_response::Behaviour<C>,
     local_peer_id: PeerId,
     next_id: u64,
-    requests: HashMap<RequestId, (PeerId, Option<oneshot::Sender<SwarmResponse>>)>,
+    requests: HashMap<RequestId, RequestContext>,
     join_set: JoinSet<(ReplyChannel, SwarmResponse)>,
 }
 
@@ -104,8 +104,14 @@ pub struct Behaviour<C: request_response::Codec + Clone + Send + 'static> {
     request_response: request_response::Behaviour<C>,
     local_peer_id: PeerId,
     next_id: u64,
-    requests: HashMap<RequestId, (PeerId, Option<oneshot::Sender<SwarmResponse>>)>,
+    requests: HashMap<RequestId, RequestContext>,
     join_set: JoinSet<(ReplyChannel, SwarmResponse)>,
+}
+
+struct RequestContext {
+    peer_id: PeerId,
+    summary: String,
+    reply: Option<oneshot::Sender<SwarmResponse>>,
 }
 
 #[cfg(feature = "serde-codec")]
@@ -174,9 +180,13 @@ where
             // Remove requests for this peer id
             let dead_requests = self
                 .requests
-                .extract_if(|_, (req_peer_id, _)| req_peer_id == &peer_id);
-            for (_, (_, reply)) in dead_requests {
-                if let Some(tx) = reply {
+                .extract_if(|_, context| context.peer_id == peer_id);
+            for (request_id, context) in dead_requests {
+                #[cfg(not(feature = "tracing"))]
+                let _ = request_id;
+                #[cfg(feature = "tracing")]
+                tracing::warn!(%peer_id, %request_id, summary = %context.summary, "thespis dial failure for pending request");
+                if let Some(tx) = context.reply {
                     let _ = tx.send(SwarmResponse::OutboundFailure(
                         WireRemoteSendError::DialFailure,
                     ));
@@ -302,4 +312,3 @@ where
         }
     }
 }
-
