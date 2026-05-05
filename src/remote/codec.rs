@@ -164,14 +164,14 @@ mod rkyv_transport {
     use std::io;
 
     use async_trait::async_trait;
-    use futures::{AsyncReadExt, AsyncWriteExt, prelude::*};
+    use futures::prelude::*;
     use libp2p::{StreamProtocol, request_response};
+    use libp2p_rkyv_codec::{VersionedFrameConfig, read_versioned_rkyv, write_versioned_rkyv};
 
     use super::super::messaging::{Config, SwarmRequest, SwarmResponse};
 
     const WIRE_MAGIC: [u8; 4] = *b"THSP";
     const WIRE_VERSION: u16 = 2;
-    const HEADER_LEN: usize = 10;
 
     #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
     struct ThespisWireRequestEnvelope {
@@ -204,6 +204,14 @@ mod rkyv_transport {
                 response_size_maximum: config.response_size_maximum(),
             }
         }
+
+        fn request_frame_config(&self) -> VersionedFrameConfig {
+            VersionedFrameConfig::new(WIRE_MAGIC, WIRE_VERSION, self.request_size_maximum)
+        }
+
+        fn response_frame_config(&self) -> VersionedFrameConfig {
+            VersionedFrameConfig::new(WIRE_MAGIC, WIRE_VERSION, self.response_size_maximum)
+        }
     }
 
     impl Clone for ThespisRkyvCodec {
@@ -228,125 +236,6 @@ mod rkyv_transport {
 
     fn io_invalid_data(message: impl Into<String>) -> io::Error {
         io::Error::new(io::ErrorKind::InvalidData, message.into())
-    }
-
-    fn encode_payload<T>(value: &T) -> io::Result<Vec<u8>>
-    where
-        T: rkyv::Archive
-            + for<'a> rkyv::Serialize<
-                rkyv::api::high::HighSerializer<
-                    rkyv::util::AlignedVec,
-                    rkyv::ser::allocator::ArenaHandle<'a>,
-                    rkyv::rancor::Error,
-                >,
-            >,
-    {
-        rkyv::to_bytes::<rkyv::rancor::Error>(value)
-            .map(|v| v.to_vec())
-            .map_err(|e| io_invalid_data(format!("rkyv encode failed: {e}")))
-    }
-
-    fn decode_payload<T>(payload: &[u8], context: &str) -> io::Result<T>
-    where
-        T: rkyv::Archive + Send + 'static,
-        T::Archived: for<'a> rkyv::bytecheck::CheckBytes<
-                rkyv::api::high::HighValidator<'a, rkyv::rancor::Error>,
-            > + rkyv::Deserialize<T, rkyv::api::high::HighDeserializer<rkyv::rancor::Error>>,
-    {
-        let mut aligned = rkyv::util::AlignedVec::<16>::with_capacity(payload.len());
-        aligned.extend_from_slice(payload);
-        rkyv::from_bytes::<T, rkyv::rancor::Error>(&aligned)
-            .map_err(|e| io_invalid_data(format!("rkyv {context} decode failed: {e}")))
-    }
-
-    fn frame_payload(payload: Vec<u8>, max_size: u64, context: &str) -> io::Result<Vec<u8>> {
-        if payload.len() as u64 > max_size {
-            return Err(io_invalid_data(format!(
-                "{context} frame too large: {} > {max_size}",
-                payload.len()
-            )));
-        }
-
-        let len = u32::try_from(payload.len()).map_err(|_| {
-            io_invalid_data(format!(
-                "{context} frame too large for u32 length: {}",
-                payload.len()
-            ))
-        })?;
-        let mut frame = Vec::with_capacity(HEADER_LEN + payload.len());
-        frame.extend_from_slice(&WIRE_MAGIC);
-        frame.extend_from_slice(&WIRE_VERSION.to_le_bytes());
-        frame.extend_from_slice(&len.to_le_bytes());
-        frame.extend_from_slice(&payload);
-        Ok(frame)
-    }
-
-    fn parse_frame_header(
-        header: &[u8; HEADER_LEN],
-        max_size: u64,
-        context: &str,
-    ) -> io::Result<usize> {
-        let magic = [header[0], header[1], header[2], header[3]];
-        if magic != WIRE_MAGIC {
-            return Err(io_invalid_data(format!(
-                "{context} bad magic: expected THSP, got {:02x?}",
-                magic
-            )));
-        }
-
-        let version = u16::from_le_bytes([header[4], header[5]]);
-        if version != WIRE_VERSION {
-            return Err(io_invalid_data(format!(
-                "{context} unsupported wire version: {version} (expected {WIRE_VERSION})"
-            )));
-        }
-
-        let len = u32::from_le_bytes([header[6], header[7], header[8], header[9]]) as u64;
-        if len > max_size {
-            return Err(io_invalid_data(format!(
-                "{context} frame too large: {len} > {max_size}"
-            )));
-        }
-        Ok(len as usize)
-    }
-
-    async fn read_framed<T, R>(io: &mut R, max_size: u64, context: &str) -> io::Result<T>
-    where
-        R: AsyncRead + Unpin + Send,
-        T: rkyv::Archive + Send + 'static,
-        T::Archived: for<'a> rkyv::bytecheck::CheckBytes<
-                rkyv::api::high::HighValidator<'a, rkyv::rancor::Error>,
-            > + rkyv::Deserialize<T, rkyv::api::high::HighDeserializer<rkyv::rancor::Error>>,
-    {
-        let mut header = [0u8; HEADER_LEN];
-        io.read_exact(&mut header).await?;
-        let len = parse_frame_header(&header, max_size, context)?;
-
-        let mut payload = vec![0u8; len];
-        io.read_exact(&mut payload).await?;
-        decode_payload(&payload, context)
-    }
-
-    async fn write_framed<T, W>(
-        io: &mut W,
-        value: &T,
-        max_size: u64,
-        context: &str,
-    ) -> io::Result<()>
-    where
-        W: AsyncWrite + Unpin + Send,
-        T: rkyv::Archive
-            + for<'a> rkyv::Serialize<
-                rkyv::api::high::HighSerializer<
-                    rkyv::util::AlignedVec,
-                    rkyv::ser::allocator::ArenaHandle<'a>,
-                    rkyv::rancor::Error,
-                >,
-            >,
-    {
-        let payload = encode_payload(value)?;
-        let frame = frame_payload(payload, max_size, context)?;
-        io.write_all(&frame).await
     }
 
     fn validate_request_envelope(envelope: ThespisWireRequestEnvelope) -> io::Result<SwarmRequest> {
@@ -400,7 +289,7 @@ mod rkyv_transport {
             #[cfg(not(feature = "tracing"))]
             let _ = p;
             let envelope: ThespisWireRequestEnvelope =
-                read_framed(io, self.request_size_maximum, "request").await?;
+                read_versioned_rkyv(io, self.request_frame_config(), "request").await?;
             let request = validate_request_envelope(envelope)?;
             #[cfg(feature = "tracing")]
             tracing::trace!(protocol = %p, summary = %request.summary(), "decoded thespis request");
@@ -418,7 +307,7 @@ mod rkyv_transport {
             #[cfg(not(feature = "tracing"))]
             let _ = p;
             let envelope: ThespisWireResponseEnvelope =
-                read_framed(io, self.response_size_maximum, "response").await?;
+                read_versioned_rkyv(io, self.response_frame_config(), "response").await?;
             let response = validate_response_envelope(envelope)?;
             #[cfg(feature = "tracing")]
             tracing::trace!(protocol = %p, summary = %response.summary(), "decoded thespis response");
@@ -443,8 +332,7 @@ mod rkyv_transport {
                 version: WIRE_VERSION,
                 request: req,
             };
-            write_framed(io, &envelope, self.request_size_maximum, "request").await?;
-            io.close().await
+            write_versioned_rkyv(io, &envelope, self.request_frame_config(), "request").await
         }
 
         async fn write_response<T>(
@@ -465,8 +353,7 @@ mod rkyv_transport {
                 version: WIRE_VERSION,
                 response: resp,
             };
-            write_framed(io, &envelope, self.response_size_maximum, "response").await?;
-            io.close().await
+            write_versioned_rkyv(io, &envelope, self.response_frame_config(), "response").await
         }
     }
 
@@ -497,8 +384,9 @@ mod rkyv_transport {
                 version: WIRE_VERSION,
                 request,
             };
-            let payload = encode_payload(&envelope).unwrap();
-            let decoded: ThespisWireRequestEnvelope = decode_payload(&payload, "request").unwrap();
+            let payload = libp2p_rkyv_codec::encode_rkyv(&envelope).unwrap();
+            let decoded: ThespisWireRequestEnvelope =
+                libp2p_rkyv_codec::decode_rkyv(&payload).unwrap();
             let request = validate_request_envelope(decoded).unwrap();
             assert_eq!(request.summary(), "Tell actor::message payload=3B");
         }
@@ -510,36 +398,50 @@ mod rkyv_transport {
                 version: WIRE_VERSION,
                 response: SwarmResponse::Tell(Ok(())),
             };
-            let payload = encode_payload(&envelope).unwrap();
+            let payload = libp2p_rkyv_codec::encode_rkyv(&envelope).unwrap();
             let decoded: ThespisWireResponseEnvelope =
-                decode_payload(&payload, "response").unwrap();
+                libp2p_rkyv_codec::decode_rkyv(&payload).unwrap();
             let response = validate_response_envelope(decoded).unwrap();
             assert_eq!(response.summary(), "Tell ok");
         }
 
-        #[test]
-        fn frame_rejects_bad_magic() {
-            let mut header = [0u8; HEADER_LEN];
+        #[tokio::test]
+        async fn frame_rejects_bad_magic() {
+            let mut header = [0u8; 10];
             header[..4].copy_from_slice(b"BAD!");
             header[4..6].copy_from_slice(&WIRE_VERSION.to_le_bytes());
+            let mut cursor = futures::io::Cursor::new(header);
+            let config = VersionedFrameConfig::new(WIRE_MAGIC, WIRE_VERSION, 1024);
             assert!(
-                parse_frame_header(&header, 1024, "request")
-                    .unwrap_err()
-                    .to_string()
-                    .contains("bad magic")
+                read_versioned_rkyv::<ThespisWireRequestEnvelope, _>(
+                    &mut cursor,
+                    config,
+                    "request"
+                )
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("bad magic")
             );
         }
 
-        #[test]
-        fn frame_rejects_unsupported_version() {
-            let mut header = [0u8; HEADER_LEN];
+        #[tokio::test]
+        async fn frame_rejects_unsupported_version() {
+            let mut header = [0u8; 10];
             header[..4].copy_from_slice(&WIRE_MAGIC);
             header[4..6].copy_from_slice(&1u16.to_le_bytes());
+            let mut cursor = futures::io::Cursor::new(header);
+            let config = VersionedFrameConfig::new(WIRE_MAGIC, WIRE_VERSION, 1024);
             assert!(
-                parse_frame_header(&header, 1024, "request")
-                    .unwrap_err()
-                    .to_string()
-                    .contains("unsupported wire version")
+                read_versioned_rkyv::<ThespisWireRequestEnvelope, _>(
+                    &mut cursor,
+                    config,
+                    "request"
+                )
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("unsupported wire version")
             );
         }
     }
