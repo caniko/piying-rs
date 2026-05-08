@@ -48,6 +48,11 @@ serde-codec = ["serde", "dep:rmp-serde", "libp2p?/cbor"]
 tracing = ["dep:tracing", "tokio/tracing"]
 metrics = ["dep:metrics"]
 hotpath = ["dep:hotpath", "hotpath/hotpath"]
+# Test-only: when enabled, every libp2p protocol id thespis advertises is
+# suffixed with the value of `THESPAN_SESSION_ID` (if set) so two co-running
+# test sessions can't cross-discover via mDNS / KAD. Production builds leave
+# this off and the code is byte-identical to the unsuffixed path.
+session-isolation = []
 
 [dependencies]
 thespis_macros = { version = "0.19.0", path = "./macros", optional = true }

@@ -89,10 +89,12 @@ pub mod codec;
 #[allow(missing_docs)] // rkyv::Archive derive generates undocumented archived types
 pub mod messaging;
 pub mod registry;
+pub mod session;
 mod swarm;
 pub mod wire;
 
 pub use behaviour::*;
+pub use session::applied_protocol;
 pub use swarm::*;
 
 pub(crate) static REMOTE_REGISTRY: LazyLock<Mutex<HashMap<ActorId, RemoteRegistryActorRef>>> =

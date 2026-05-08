@@ -12,7 +12,7 @@ where
     pub fn with_codec(local_peer_id: PeerId, config: Config, codec: C) -> Self {
         let request_response = request_response::Behaviour::with_codec(
             codec,
-            [(PROTO_NAME, request_response::ProtocolSupport::Full)],
+            [(proto_name(), request_response::ProtocolSupport::Full)],
             config.into(),
         );
 

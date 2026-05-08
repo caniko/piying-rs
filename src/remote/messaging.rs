@@ -59,7 +59,20 @@ use super::_internal::{
     REMOTE_ACTORS, REMOTE_MESSAGES, RemoteActorFns, RemoteMessageFns, RemoteMessageRegistrationID,
 };
 
-const PROTO_NAME: StreamProtocol = StreamProtocol::new("/thespis/messaging/1.0.0");
+/// Protocol id for thespis messaging. With the `session-isolation` feature on
+/// and `THESPAN_SESSION_ID` set, the id is suffixed at first access; otherwise
+/// it stays equal to `/thespis/messaging/1.0.0` and is byte-identical to a
+/// `const StreamProtocol::new`. Cheap to clone (`StreamProtocol` is `Cow`).
+fn proto_name() -> StreamProtocol {
+    use std::sync::LazyLock;
+    static NAME: LazyLock<StreamProtocol> = LazyLock::new(|| {
+        StreamProtocol::try_from_owned(super::session::applied_protocol(
+            "/thespis/messaging/1.0.0",
+        ))
+        .expect("messaging protocol id must start with '/'")
+    });
+    NAME.clone()
+}
 
 static REMOTE_ACTORS_MAP: LazyLock<HashMap<&'static str, RemoteActorFns>> = LazyLock::new(|| {
     let mut existing_ids = HashSet::new();
