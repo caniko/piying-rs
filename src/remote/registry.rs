@@ -64,10 +64,8 @@ use crate::{
 fn proto_name() -> StreamProtocol {
     use std::sync::LazyLock;
     static NAME: LazyLock<StreamProtocol> = LazyLock::new(|| {
-        StreamProtocol::try_from_owned(super::session::applied_protocol(
-            "/thespis/registry/1.0.0",
-        ))
-        .expect("registry protocol id must start with '/'")
+        StreamProtocol::try_from_owned(super::session::applied_protocol("/thespis/registry/1.0.0"))
+            .expect("registry protocol id must start with '/'")
     });
     NAME.clone()
 }
