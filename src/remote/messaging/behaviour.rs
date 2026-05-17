@@ -11,7 +11,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             request_timeout: Duration::from_secs(10),
-            max_concurrent_streams: 100,
+            max_concurrent_streams: 1024,
             request_size_maximum: 1024 * 1024,
             response_size_maximum: 10 * 1024 * 1024,
         }
