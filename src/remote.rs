@@ -394,6 +394,23 @@ pub async fn clear_registry() {
     REMOTE_REGISTRY.lock().await.clear();
 }
 
+/// Synchronous version of [`clear_registry`].
+///
+/// Spins on [`Mutex::try_lock`] with [`std::thread::yield_now`] until the lock
+/// is acquired. Intended for test harness cleanup that runs outside an async
+/// context.
+pub fn clear_registry_sync() {
+    loop {
+        match REMOTE_REGISTRY.try_lock() {
+            Ok(mut registry) => {
+                registry.clear();
+                return;
+            }
+            Err(_) => std::thread::yield_now(),
+        }
+    }
+}
+
 /// Synchronous version of [`register_actor_local`].
 ///
 /// Spins on [`Mutex::try_lock`] with [`std::thread::yield_now`] until the lock
