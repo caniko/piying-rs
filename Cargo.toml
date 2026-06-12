@@ -27,7 +27,7 @@ repository = "https://codeberg.org/caniko/rs-thespis"
 license = "MIT OR Apache-2.0"
 keywords = ["actor", "tokio"]
 categories = ["asynchronous", "concurrency", "rust-patterns"]
-include = ["/src"]
+include = ["/src", "/README.md"]
 
 [features]
 default = ["macros", "tracing"]
