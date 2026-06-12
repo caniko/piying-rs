@@ -17,9 +17,9 @@ pub mod reply;
 pub mod request;
 
 pub use actor::Actor;
+pub use reply::Reply;
 #[cfg(feature = "macros")]
 pub use thespis_macros::{Actor, RemoteActor, Reply, messages, remote_message};
-pub use reply::Reply;
 
 /// Commonly used types and functions that can be imported with a single use statement.
 ///

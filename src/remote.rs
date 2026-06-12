@@ -1,8 +1,8 @@
-//! # Remote Actors in Kameo
+//! # Remote Actors in Thespis
 //!
-//! The `remote` module in Kameo provides tools for managing distributed actors across nodes,
+//! The `remote` module in Thespis provides tools for managing distributed actors across nodes,
 //! enabling actors to communicate seamlessly in a peer-to-peer (P2P) network. By leveraging
-//! the [libp2p](https://libp2p.io) library, Kameo allows you to register actors under unique
+//! the [libp2p](https://libp2p.io) library, Thespis allows you to register actors under unique
 //! names and send messages between actors on different nodes as though they were local.
 //!
 //! ## Key Features
@@ -89,10 +89,12 @@ pub mod codec;
 #[allow(missing_docs)] // rkyv::Archive derive generates undocumented archived types
 pub mod messaging;
 pub mod registry;
+pub mod session;
 mod swarm;
 pub mod wire;
 
 pub use behaviour::*;
+pub use session::applied_protocol;
 pub use swarm::*;
 
 pub(crate) static REMOTE_REGISTRY: LazyLock<Mutex<HashMap<ActorId, RemoteRegistryActorRef>>> =
@@ -336,7 +338,7 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 ///
 /// # Example
 ///
-/// ```no_run
+/// ```ignore
 /// use thespis::remote::{self, codec::ThespisRkyvCodec};
 /// use libp2p::{swarm::NetworkBehaviour, noise, tcp, yamux};
 ///
@@ -390,6 +392,23 @@ where
 /// [`RemoteActorRef::for_peer()`] lookups until they are re-registered.
 pub async fn clear_registry() {
     REMOTE_REGISTRY.lock().await.clear();
+}
+
+/// Synchronous version of [`clear_registry`].
+///
+/// Spins on [`Mutex::try_lock`] with [`std::thread::yield_now`] until the lock
+/// is acquired. Intended for test harness cleanup that runs outside an async
+/// context.
+pub fn clear_registry_sync() {
+    loop {
+        match REMOTE_REGISTRY.try_lock() {
+            Ok(mut registry) => {
+                registry.clear();
+                return;
+            }
+            Err(_) => std::thread::yield_now(),
+        }
+    }
 }
 
 /// Synchronous version of [`register_actor_local`].

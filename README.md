@@ -31,4 +31,4 @@ Thespis is dual-licensed under either:
 - MIT License ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
 
-Same as the original Kameo project.
+Same as the original Thespis project.

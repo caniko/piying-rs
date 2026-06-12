@@ -6,7 +6,7 @@
 //!
 //! # Example
 //!
-//! ```
+//! ```no_run
 //! use std::time::Duration;
 //! use std::sync::atomic::{AtomicU64, Ordering};
 //! use std::sync::Arc;

@@ -166,38 +166,59 @@ mod rkyv_transport {
     use async_trait::async_trait;
     use futures::prelude::*;
     use libp2p::{StreamProtocol, request_response};
-    use libp2p_rkyv_codec::RkyvCodec;
+    use libp2p_rkyv_codec::{VersionedFrameConfig, read_versioned_rkyv, write_versioned_rkyv};
 
     use super::super::messaging::{Config, SwarmRequest, SwarmResponse};
 
+    const WIRE_MAGIC: [u8; 4] = *b"THSP";
+    const WIRE_VERSION: u16 = 2;
+
+    #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+    struct ThespisWireRequestEnvelope {
+        magic: [u8; 4],
+        version: u16,
+        request: SwarmRequest,
+    }
+
+    #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+    struct ThespisWireResponseEnvelope {
+        magic: [u8; 4],
+        version: u16,
+        response: SwarmResponse,
+    }
+
     /// Length-prefixed rkyv codec for thespis's remote messaging protocol.
     ///
-    /// `SwarmRequest`/`SwarmResponse` use wire-friendly field types and derive
-    /// rkyv directly, so this is a thin delegation to [`RkyvCodec`] with
-    /// construction from a [`Config`].
+    /// The outer frame starts with `THSP`, a wire version, and the rkyv payload
+    /// length so incompatible peers fail before actor/game dispatch.
     pub struct ThespisRkyvCodec {
-        inner: RkyvCodec<SwarmRequest, SwarmResponse>,
+        request_size_maximum: u64,
+        response_size_maximum: u64,
     }
 
     impl ThespisRkyvCodec {
         /// Creates a new `ThespisRkyvCodec` from the messaging configuration.
         pub fn new(config: &Config) -> Self {
             ThespisRkyvCodec {
-                inner: RkyvCodec::new(
-                    config.request_size_maximum(),
-                    config.response_size_maximum(),
-                ),
+                request_size_maximum: config.request_size_maximum(),
+                response_size_maximum: config.response_size_maximum(),
             }
+        }
+
+        fn request_frame_config(&self) -> VersionedFrameConfig {
+            VersionedFrameConfig::new(WIRE_MAGIC, WIRE_VERSION, self.request_size_maximum)
+        }
+
+        fn response_frame_config(&self) -> VersionedFrameConfig {
+            VersionedFrameConfig::new(WIRE_MAGIC, WIRE_VERSION, self.response_size_maximum)
         }
     }
 
     impl Clone for ThespisRkyvCodec {
         fn clone(&self) -> Self {
             Self {
-                inner: RkyvCodec::new(
-                    self.inner.request_size_maximum,
-                    self.inner.response_size_maximum,
-                ),
+                request_size_maximum: self.request_size_maximum,
+                response_size_maximum: self.response_size_maximum,
             }
         }
     }
@@ -205,10 +226,50 @@ mod rkyv_transport {
     impl std::fmt::Debug for ThespisRkyvCodec {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             f.debug_struct("ThespisRkyvCodec")
-                .field("request_size_maximum", &self.inner.request_size_maximum)
-                .field("response_size_maximum", &self.inner.response_size_maximum)
+                .field("wire_magic", &String::from_utf8_lossy(&WIRE_MAGIC))
+                .field("wire_version", &WIRE_VERSION)
+                .field("request_size_maximum", &self.request_size_maximum)
+                .field("response_size_maximum", &self.response_size_maximum)
                 .finish()
         }
+    }
+
+    fn io_invalid_data(message: impl Into<String>) -> io::Error {
+        io::Error::new(io::ErrorKind::InvalidData, message.into())
+    }
+
+    fn validate_request_envelope(envelope: ThespisWireRequestEnvelope) -> io::Result<SwarmRequest> {
+        if envelope.magic != WIRE_MAGIC {
+            return Err(io_invalid_data(format!(
+                "request envelope bad magic: expected THSP, got {:02x?}",
+                envelope.magic
+            )));
+        }
+        if envelope.version != WIRE_VERSION {
+            return Err(io_invalid_data(format!(
+                "request envelope unsupported wire version: {} (expected {WIRE_VERSION})",
+                envelope.version
+            )));
+        }
+        Ok(envelope.request)
+    }
+
+    fn validate_response_envelope(
+        envelope: ThespisWireResponseEnvelope,
+    ) -> io::Result<SwarmResponse> {
+        if envelope.magic != WIRE_MAGIC {
+            return Err(io_invalid_data(format!(
+                "response envelope bad magic: expected THSP, got {:02x?}",
+                envelope.magic
+            )));
+        }
+        if envelope.version != WIRE_VERSION {
+            return Err(io_invalid_data(format!(
+                "response envelope unsupported wire version: {} (expected {WIRE_VERSION})",
+                envelope.version
+            )));
+        }
+        Ok(envelope.response)
     }
 
     #[async_trait]
@@ -225,7 +286,14 @@ mod rkyv_transport {
         where
             T: AsyncRead + Unpin + Send,
         {
-            self.inner.read_request(p, io).await
+            #[cfg(not(feature = "tracing"))]
+            let _ = p;
+            let envelope: ThespisWireRequestEnvelope =
+                read_versioned_rkyv(io, self.request_frame_config(), "request").await?;
+            let request = validate_request_envelope(envelope)?;
+            #[cfg(feature = "tracing")]
+            tracing::trace!(protocol = %p, summary = %request.summary(), "decoded thespis request");
+            Ok(request)
         }
 
         async fn read_response<T>(
@@ -236,7 +304,14 @@ mod rkyv_transport {
         where
             T: AsyncRead + Unpin + Send,
         {
-            self.inner.read_response(p, io).await
+            #[cfg(not(feature = "tracing"))]
+            let _ = p;
+            let envelope: ThespisWireResponseEnvelope =
+                read_versioned_rkyv(io, self.response_frame_config(), "response").await?;
+            let response = validate_response_envelope(envelope)?;
+            #[cfg(feature = "tracing")]
+            tracing::trace!(protocol = %p, summary = %response.summary(), "decoded thespis response");
+            Ok(response)
         }
 
         async fn write_request<T>(
@@ -248,7 +323,16 @@ mod rkyv_transport {
         where
             T: AsyncWrite + Unpin + Send,
         {
-            self.inner.write_request(p, io, req).await
+            #[cfg(not(feature = "tracing"))]
+            let _ = p;
+            #[cfg(feature = "tracing")]
+            tracing::trace!(protocol = %p, summary = %req.summary(), "encoding thespis request");
+            let envelope = ThespisWireRequestEnvelope {
+                magic: WIRE_MAGIC,
+                version: WIRE_VERSION,
+                request: req,
+            };
+            write_versioned_rkyv(io, &envelope, self.request_frame_config(), "request").await
         }
 
         async fn write_response<T>(
@@ -260,7 +344,105 @@ mod rkyv_transport {
         where
             T: AsyncWrite + Unpin + Send,
         {
-            self.inner.write_response(p, io, resp).await
+            #[cfg(not(feature = "tracing"))]
+            let _ = p;
+            #[cfg(feature = "tracing")]
+            tracing::trace!(protocol = %p, summary = %resp.summary(), "encoding thespis response");
+            let envelope = ThespisWireResponseEnvelope {
+                magic: WIRE_MAGIC,
+                version: WIRE_VERSION,
+                response: resp,
+            };
+            write_versioned_rkyv(io, &envelope, self.response_frame_config(), "response").await
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::remote::wire::WireActorId;
+
+        fn test_actor_id() -> WireActorId {
+            WireActorId {
+                sequence_id: 7,
+                peer_id_bytes: vec![1, 2, 3, 4],
+            }
+        }
+
+        #[test]
+        fn request_envelope_roundtrip() {
+            let request = SwarmRequest::Tell {
+                actor_id: test_actor_id(),
+                actor_remote_id: "actor".into(),
+                message_remote_id: "message".into(),
+                payload: vec![1, 2, 3],
+                mailbox_timeout: None,
+                immediate: false,
+            };
+            let envelope = ThespisWireRequestEnvelope {
+                magic: WIRE_MAGIC,
+                version: WIRE_VERSION,
+                request,
+            };
+            let payload = libp2p_rkyv_codec::encode_rkyv(&envelope).unwrap();
+            let decoded: ThespisWireRequestEnvelope =
+                libp2p_rkyv_codec::decode_rkyv(&payload).unwrap();
+            let request = validate_request_envelope(decoded).unwrap();
+            assert_eq!(request.summary(), "Tell actor::message payload=3B");
+        }
+
+        #[test]
+        fn response_envelope_roundtrip() {
+            let envelope = ThespisWireResponseEnvelope {
+                magic: WIRE_MAGIC,
+                version: WIRE_VERSION,
+                response: SwarmResponse::Tell(Ok(())),
+            };
+            let payload = libp2p_rkyv_codec::encode_rkyv(&envelope).unwrap();
+            let decoded: ThespisWireResponseEnvelope =
+                libp2p_rkyv_codec::decode_rkyv(&payload).unwrap();
+            let response = validate_response_envelope(decoded).unwrap();
+            assert_eq!(response.summary(), "Tell ok");
+        }
+
+        #[tokio::test]
+        async fn frame_rejects_bad_magic() {
+            let mut header = [0u8; 10];
+            header[..4].copy_from_slice(b"BAD!");
+            header[4..6].copy_from_slice(&WIRE_VERSION.to_le_bytes());
+            let mut cursor = futures::io::Cursor::new(header);
+            let config = VersionedFrameConfig::new(WIRE_MAGIC, WIRE_VERSION, 1024);
+            assert!(
+                read_versioned_rkyv::<ThespisWireRequestEnvelope, _>(
+                    &mut cursor,
+                    config,
+                    "request"
+                )
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("bad magic")
+            );
+        }
+
+        #[tokio::test]
+        async fn frame_rejects_unsupported_version() {
+            let mut header = [0u8; 10];
+            header[..4].copy_from_slice(&WIRE_MAGIC);
+            header[4..6].copy_from_slice(&1u16.to_le_bytes());
+            let mut cursor = futures::io::Cursor::new(header);
+            let config = VersionedFrameConfig::new(WIRE_MAGIC, WIRE_VERSION, 1024);
+            assert!(
+                read_versioned_rkyv::<ThespisWireRequestEnvelope, _>(
+                    &mut cursor,
+                    config,
+                    "request"
+                )
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("unsupported wire version")
+            );
         }
     }
 }

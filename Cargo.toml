@@ -48,6 +48,11 @@ serde-codec = ["serde", "dep:rmp-serde", "libp2p?/cbor"]
 tracing = ["dep:tracing", "tokio/tracing"]
 metrics = ["dep:metrics"]
 hotpath = ["dep:hotpath", "hotpath/hotpath"]
+# Test-only: when enabled, every libp2p protocol id thespis advertises is
+# suffixed with the value of `THESPAN_SESSION_ID` (if set) so two co-running
+# test sessions can't cross-discover via mDNS / KAD. Production builds leave
+# this off and the code is byte-identical to the unsuffixed path.
+session-isolation = []
 
 [dependencies]
 thespis_macros = { version = "0.19.0", path = "./macros", optional = true }
@@ -76,7 +81,9 @@ libp2p = { version = "0.56.0", features = [
 libp2p-identity = { version = "0.2.9", optional = true }
 linkme = { version = "0.3.28", optional = true }
 metrics = { version = "0.24.2", optional = true }
-libp2p-rkyv-codec = { version = "0.1", optional = true }
+# Keep this version-only for downstream users. Local co-development with the
+# sibling vendor checkout belongs in the consuming workspace's `[patch.crates-io]`.
+libp2p-rkyv-codec = { version = "0.2", optional = true }
 rkyv = { version = "0.8", optional = true }
 rmp-serde = { version = "1.3.0", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
@@ -85,37 +92,15 @@ tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
 tracing = { version = "0.1", optional = true }
 
 [dev-dependencies]
-criterion = { version = "0.8", features = ["async_tokio"] }
 thespis_actors = { path = "actors" }
-libp2p = { version = "0.56.0", features = ["serde"] }
-metrics-exporter-prometheus = "0.18"
 tokio = { version = "1", features = [
   "macros",
   "rt",
   "rt-multi-thread",
-  "signal",
   "sync",
   "time",
 ] }
-tokio-stream = { version = "0.1.15", features = ["time"] }
 tokio-test = "0.4.4"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-
-[[example]]
-name = "remote"
-required-features = ["remote", "serde-codec"]
-
-[[example]]
-name = "custom_swarm"
-required-features = ["remote", "serde-codec"]
-
-[[example]]
-name = "prometheus_metrics"
-required-features = ["metrics"]
-
-[[bench]]
-name = "overhead"
-harness = false
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

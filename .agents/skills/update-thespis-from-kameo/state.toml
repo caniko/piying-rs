@@ -1,0 +1,4 @@
+upstream_url = "https://github.com/tqwewe/kameo.git"
+baseline_since = "2026-03-09T00:00:00Z"
+last_inspected_commit = "1d498c0566b613b9afe6d54965c4b191c84432e0"
+notes = "Initial empty-checkpoint baseline starts one month before Thespis fork birth commit b28beaa on 2026-04-09. Future runs inspect from last_inspected_commit through latest Kameo HEAD."
