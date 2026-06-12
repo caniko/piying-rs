@@ -1,5 +1,9 @@
 # Thespis
 
+<!-- simit:badges:start -->
+![CI](https://img.shields.io/badge/CI-managed-2088ff) [![Nix](https://img.shields.io/badge/Nix-managed-5277c3)](flake.nix) [![crates.io](https://img.shields.io/badge/crates.io-ready-f46623)](https://crates.io/crates/thespis)
+<!-- simit:badges:end -->
+
 Fault-tolerant async actors built on Tokio.
 
 **Thespis** is a fork of [Kameo](https://github.com/tqwewe/kameo) by [tqwewe](https://github.com/tqwewe).
