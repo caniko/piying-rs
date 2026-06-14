@@ -50,7 +50,7 @@ metrics = ["dep:metrics"]
 hotpath = ["dep:hotpath", "hotpath/hotpath"]
 # Test-only: when enabled, every libp2p protocol id thespis advertises is
 # suffixed with the value of `THESPAN_SESSION_ID` (if set) so two co-running
-# test sessions can't cross-discover via mDNS / KAD. Production builds leave
+# test sessions can't cross-discover through shared KAD protocol ids. Production builds leave
 # this off and the code is byte-identical to the unsuffixed path.
 session-isolation = []
 
@@ -71,7 +71,6 @@ libp2p = { version = "0.56.0", features = [
   "kad",
   "macros",
   "noise",
-  "mdns",
   "quic",
   "request-response",
   "tcp",
