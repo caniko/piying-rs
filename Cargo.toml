@@ -76,6 +76,7 @@ libp2p = { version = "0.56.0", features = [
   "tcp",
   "tokio",
   "yamux",
+  "mdns",
 ], optional = true }
 libp2p-identity = { version = "0.2.9", optional = true }
 linkme = { version = "0.3.28", optional = true }
