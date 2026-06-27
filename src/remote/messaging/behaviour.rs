@@ -62,7 +62,7 @@ impl From<Config> for request_response::Config {
     }
 }
 
-#[cfg(feature = "serde-codec")]
+#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
 impl<Req, Resp> From<Config> for request_response::cbor::codec::Codec<Req, Resp> {
     fn from(config: Config) -> Self {
         request_response::cbor::codec::Codec::default()
@@ -74,7 +74,7 @@ impl<Req, Resp> From<Config> for request_response::cbor::codec::Codec<Req, Resp>
 /// The default codec used when no custom codec is specified.
 ///
 /// Only available with the `serde-codec` feature.
-#[cfg(feature = "serde-codec")]
+#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
 pub type DefaultCodec = request_response::cbor::codec::Codec<SwarmRequest, SwarmResponse>;
 
 /// `Behaviour` is a `NetworkBehaviour` that implements the piying messaging behaviour
@@ -84,7 +84,7 @@ pub type DefaultCodec = request_response::cbor::codec::Codec<SwarmRequest, Swarm
 /// to CBOR (via libp2p's built-in serde codec). Otherwise, a custom codec must be
 /// specified explicitly via [`Behaviour::with_codec`].
 #[allow(missing_debug_implementations)]
-#[cfg(feature = "serde-codec")]
+#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
 pub struct Behaviour<C: request_response::Codec + Clone + Send + 'static = DefaultCodec> {
     request_response: request_response::Behaviour<C>,
     local_peer_id: PeerId,
@@ -99,7 +99,7 @@ pub struct Behaviour<C: request_response::Codec + Clone + Send + 'static = Defau
 /// Supply a codec implementing [`request_response::Codec`] via [`Behaviour::with_codec`].
 /// Enable the `serde-codec` feature for a default CBOR codec.
 #[allow(missing_debug_implementations)]
-#[cfg(not(feature = "serde-codec"))]
+#[cfg(any(not(feature = "serde-codec"), feature = "rkyv-codec"))]
 pub struct Behaviour<C: request_response::Codec + Clone + Send + 'static> {
     request_response: request_response::Behaviour<C>,
     local_peer_id: PeerId,
@@ -114,7 +114,7 @@ struct RequestContext {
     reply: Option<oneshot::Sender<SwarmResponse>>,
 }
 
-#[cfg(feature = "serde-codec")]
+#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
 impl Behaviour<DefaultCodec> {
     /// Creates a new messaging behaviour with the default CBOR codec.
     pub fn new(local_peer_id: PeerId, config: Config) -> Self {

@@ -96,7 +96,7 @@ pub trait Decode: Sized + Send + 'static {
 // serde-codec blanket impls
 // ---------------------------------------------------------------------------
 
-#[cfg(feature = "serde-codec")]
+#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
 impl<T> Encode for T
 where
     T: serde::Serialize + Send + 'static,
@@ -106,7 +106,7 @@ where
     }
 }
 
-#[cfg(feature = "serde-codec")]
+#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
 impl<T> Decode for T
 where
     T: serde::de::DeserializeOwned + Send + 'static,
@@ -447,7 +447,7 @@ pub use rkyv_transport::PiyingRkyvCodec;
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
-#[cfg(feature = "serde-codec")]
+#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
 mod serde_tests {
     use super::*;
 

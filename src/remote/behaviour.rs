@@ -47,7 +47,7 @@ use super::{
 /// let behaviour = remote::Behaviour::new(peer_id, remote::messaging::Config::default());
 /// ```
 #[allow(missing_debug_implementations)]
-#[cfg(feature = "serde-codec")]
+#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
 pub struct Behaviour<
     C: libp2p::request_response::Codec + Clone + Send + 'static = messaging::DefaultCodec,
 > {
@@ -65,7 +65,7 @@ pub struct Behaviour<
 /// Supply a codec implementing [`libp2p::request_response::Codec`] via [`Behaviour::with_codec`].
 /// Enable the `serde-codec` feature for a default CBOR codec.
 #[allow(missing_debug_implementations)]
-#[cfg(not(feature = "serde-codec"))]
+#[cfg(any(not(feature = "serde-codec"), feature = "rkyv-codec"))]
 pub struct Behaviour<C: libp2p::request_response::Codec + Clone + Send + 'static> {
     /// Messaging behaviour for sending and receiving actor messages.
     pub messaging: messaging::Behaviour<C>,
@@ -76,7 +76,7 @@ pub struct Behaviour<C: libp2p::request_response::Codec + Clone + Send + 'static
     cmd_rx: mpsc::UnboundedReceiver<SwarmCommand>,
 }
 
-#[cfg(feature = "serde-codec")]
+#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
 impl Behaviour<messaging::DefaultCodec> {
     /// Creates a new remote behaviour with the default CBOR codec.
     ///

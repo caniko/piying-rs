@@ -62,7 +62,7 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-#[cfg(feature = "serde-codec")]
+#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
 use std::error;
 
 use futures::StreamExt;
@@ -75,9 +75,6 @@ use crate::{
     error::{RegistryError, RemoteSendError},
     mailbox::SignalMailbox,
 };
-
-#[cfg(all(feature = "serde-codec", feature = "rkyv-codec"))]
-compile_error!("Features `serde-codec` and `rkyv-codec` are mutually exclusive");
 
 #[cfg(not(any(feature = "serde-codec", feature = "rkyv-codec")))]
 compile_error!("The `remote` feature requires either `serde-codec` or `rkyv-codec`");
@@ -249,7 +246,7 @@ pub trait RemoteMessage<M> {
 ///     Ok(())
 /// }
 /// ```
-#[cfg(feature = "serde-codec")]
+#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
 pub fn bootstrap() -> Result<PeerId, Box<dyn error::Error>> {
     bootstrap_on("/ip4/0.0.0.0/tcp/0")
 }
@@ -257,7 +254,7 @@ pub fn bootstrap() -> Result<PeerId, Box<dyn error::Error>> {
 /// Bootstrap with a specific listen address.
 ///
 /// Requires the `serde-codec` feature.
-#[cfg(feature = "serde-codec")]
+#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
 pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
     use libp2p::{SwarmBuilder, mdns, noise, swarm::SwarmEvent, tcp, yamux};
 

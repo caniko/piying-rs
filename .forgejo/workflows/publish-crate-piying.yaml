@@ -78,20 +78,14 @@ jobs:
           git fetch --force --tags origin "refs/tags/${tag}:refs/tags/${tag}"
           git verify-tag "$tag"
 
-      - name: Test serde codec
-        run: cargo test -p piying --features macros,tracing,remote,serde-codec,metrics
-
-      - name: Test rkyv codec
-        run: cargo test -p piying --features macros,tracing,remote,rkyv-codec,metrics
+      - name: Test all features
+        run: cargo test -p piying --all-features
 
       - name: Test no default features
         run: cargo test -p piying --no-default-features
 
-      - name: Clippy serde codec
-        run: cargo clippy -p piying --all-targets --features macros,tracing,remote,serde-codec,metrics -- --deny warnings
-
-      - name: Clippy rkyv codec
-        run: cargo clippy -p piying --all-targets --features macros,tracing,remote,rkyv-codec,metrics -- --deny warnings
+      - name: Clippy all features
+        run: cargo clippy -p piying --all-targets --all-features -- --deny warnings
 
       - name: Clippy no default features
         run: cargo clippy -p piying --all-targets --no-default-features -- --deny warnings
