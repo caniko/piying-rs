@@ -11,16 +11,16 @@ where
     /// # Example
     ///
     /// ```
-    /// use thespis::actor::{Actor, ActorRef, Spawn};
+    /// use piying::actor::{Actor, ActorRef, Spawn};
     ///
-    /// # #[derive(thespis::Actor)]
+    /// # #[derive(piying::Actor)]
     /// # struct MyActor;
     /// #
     /// # struct Msg;
     /// #
-    /// # impl thespis::message::Message<Msg> for MyActor {
+    /// # impl piying::message::Message<Msg> for MyActor {
     /// #     type Reply = ();
-    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut thespis::message::Context<Self, Self::Reply>) -> Self::Reply { }
+    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut piying::message::Context<Self, Self::Reply>) -> Self::Reply { }
     /// # }
     /// #
     /// # tokio_test::block_on(async {
@@ -57,16 +57,16 @@ where
     /// # Example
     ///
     /// ```
-    /// use thespis::actor::{Actor, ActorRef, Spawn};
+    /// use piying::actor::{Actor, ActorRef, Spawn};
     ///
-    /// # #[derive(thespis::Actor)]
+    /// # #[derive(piying::Actor)]
     /// # struct MyActor;
     /// #
     /// # struct Msg;
     /// #
-    /// # impl thespis::message::Message<Msg> for MyActor {
+    /// # impl piying::message::Message<Msg> for MyActor {
     /// #     type Reply = ();
-    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut thespis::message::Context<Self, Self::Reply>) -> Self::Reply { }
+    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut piying::message::Context<Self, Self::Reply>) -> Self::Reply { }
     /// # }
     /// #
     /// # tokio_test::block_on(async {

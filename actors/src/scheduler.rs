@@ -11,8 +11,8 @@
 //! use std::sync::atomic::{AtomicU64, Ordering};
 //! use std::sync::Arc;
 //!
-//! use thespis::prelude::*;
-//! use thespis_actors::scheduler::{Scheduler, SetInterval};
+//! use piying::prelude::*;
+//! use piying_actors::scheduler::{Scheduler, SetInterval};
 //!
 //! #[derive(Actor)]
 //! struct Counter(Arc<AtomicU64>);
@@ -50,7 +50,7 @@
 
 use std::time::Duration;
 
-use thespis::{error::Infallible, mailbox::Signal, prelude::*};
+use piying::{error::Infallible, mailbox::Signal, prelude::*};
 use tokio::{
     task::{AbortHandle, JoinSet},
     time::{Instant, Interval, MissedTickBehavior},

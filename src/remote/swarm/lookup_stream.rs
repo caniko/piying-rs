@@ -12,7 +12,7 @@
 /// # Example
 ///
 /// ```rust,no_run
-/// # use thespis::{Actor, RemoteActor, actor::RemoteActorRef};
+/// # use piying::{Actor, RemoteActor, actor::RemoteActorRef};
 /// # use futures::TryStreamExt;
 /// #
 /// # #[derive(Actor, RemoteActor)]
@@ -97,4 +97,3 @@ impl<A: Actor + RemoteActor> Stream for LookupStream<A> {
         }
     }
 }
-

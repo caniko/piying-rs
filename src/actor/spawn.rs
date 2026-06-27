@@ -83,9 +83,9 @@ impl<A: Actor> PreparedActor<A> {
     /// # Example
     ///
     /// ```no_run
-    /// # use thespis::Actor;
-    /// # use thespis::actor::{PreparedActor, Spawn};
-    /// # use thespis::message::{Context, Message};
+    /// # use piying::Actor;
+    /// # use piying::actor::{PreparedActor, Spawn};
+    /// # use piying::message::{Context, Message};
     ///
     /// # #[derive(Actor)]
     /// # struct MyActor;

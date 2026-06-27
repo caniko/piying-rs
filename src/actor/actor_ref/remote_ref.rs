@@ -104,18 +104,18 @@ where
     /// # Example
     ///
     /// ```ignore
-    /// use thespis::actor::RemoteActorRef;
+    /// use piying::actor::RemoteActorRef;
     ///
-    /// # #[derive(thespis::Actor, thespis::RemoteActor)]
+    /// # #[derive(piying::Actor, piying::RemoteActor)]
     /// # struct MyActor;
     /// #
     /// # #[derive(serde::Serialize, serde::Deserialize)]
     /// # struct Msg;
     /// #
-    /// # #[thespis::remote_message("id")]
-    /// # impl thespis::message::Message<Msg> for MyActor {
+    /// # #[piying::remote_message("id")]
+    /// # impl piying::message::Message<Msg> for MyActor {
     /// #     type Reply = ();
-    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut thespis::message::Context<Self, Self::Reply>) -> Self::Reply { }
+    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut piying::message::Context<Self, Self::Reply>) -> Self::Reply { }
     /// # }
     /// #
     /// # tokio_test::block_on(async {
@@ -152,18 +152,18 @@ where
     /// # Example
     ///
     /// ```ignore
-    /// use thespis::actor::RemoteActorRef;
+    /// use piying::actor::RemoteActorRef;
     ///
-    /// # #[derive(thespis::Actor, thespis::RemoteActor)]
+    /// # #[derive(piying::Actor, piying::RemoteActor)]
     /// # struct MyActor;
     /// #
     /// # #[derive(serde::Serialize, serde::Deserialize)]
     /// # struct Msg;
     /// #
-    /// # #[thespis::remote_message("id")]
-    /// # impl thespis::message::Message<Msg> for MyActor {
+    /// # #[piying::remote_message("id")]
+    /// # impl piying::message::Message<Msg> for MyActor {
     /// #     type Reply = ();
-    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut thespis::message::Context<Self, Self::Reply>) -> Self::Reply { }
+    /// #     async fn handle(&mut self, msg: Msg, ctx: &mut piying::message::Context<Self, Self::Reply>) -> Self::Reply { }
     /// # }
     /// #
     /// # tokio_test::block_on(async {
@@ -226,12 +226,12 @@ where
     /// # Example
     ///
     /// ```no_run
-    /// # use thespis::actor::RemoteActorRef;
+    /// # use piying::actor::RemoteActorRef;
     /// #
-    /// # #[derive(thespis::Actor, thespis::RemoteActor)]
+    /// # #[derive(piying::Actor, piying::RemoteActor)]
     /// # struct ActorA;
     /// #
-    /// # #[derive(thespis::Actor, thespis::RemoteActor)]
+    /// # #[derive(piying::Actor, piying::RemoteActor)]
     /// # struct ActorB;
     /// #
     /// # tokio_test::block_on(async {
@@ -269,12 +269,12 @@ where
     /// # Example
     ///
     /// ```no_run
-    /// # use thespis::actor::RemoteActorRef;
+    /// # use piying::actor::RemoteActorRef;
     /// #
-    /// # #[derive(thespis::Actor, thespis::RemoteActor)]
+    /// # #[derive(piying::Actor, piying::RemoteActor)]
     /// # struct ActorA;
     /// #
-    /// # #[derive(thespis::Actor, thespis::RemoteActor)]
+    /// # #[derive(piying::Actor, piying::RemoteActor)]
     /// # struct ActorB;
     /// #
     /// # tokio_test::block_on(async {
@@ -443,4 +443,3 @@ impl<'de, A: Actor> serde::Deserialize<'de> for RemoteActorRef<A> {
         deserializer.deserialize_struct("RemoteActorRef", &["id"], visitor)
     }
 }
-

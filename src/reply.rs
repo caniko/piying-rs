@@ -1,4 +1,4 @@
-//! Constructs for handling replies and errors in Thespis's actor communication.
+//! Constructs for handling replies and errors in Piying's actor communication.
 //!
 //! This module provides the [`Reply`] trait and associated structures for managing message replies within the actor
 //! system. It enables actors to communicate effectively, handling both successful outcomes and errors through a
@@ -6,7 +6,7 @@
 //!
 //! **Reply Trait Overview**
 //!
-//! The `Reply` trait plays a crucial role in Thespis by defining how actors respond to messages.
+//! The `Reply` trait plays a crucial role in Piying by defining how actors respond to messages.
 //! It is implemented for a variety of common types, facilitating easy adoption and use.
 //! Special attention is given to the `Result` and [`DelegatedReply`] types:
 //! - Implementations for `Result` allow errors returned by actor handlers to be communicated back as
@@ -79,7 +79,7 @@ pub type BoxReplySender = oneshot::Sender<Result<BoxReply, BoxSendError>>;
 /// # Example
 ///
 /// ```
-/// use thespis::Reply;
+/// use piying::Reply;
 ///
 /// #[derive(Reply)]
 /// pub struct Foo { }

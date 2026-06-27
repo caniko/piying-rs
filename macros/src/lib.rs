@@ -28,7 +28,7 @@ use syn::parse_macro_input;
 /// # Example
 ///
 /// ```ignore
-/// use thespis::messages;
+/// use piying::messages;
 ///
 /// #[messages]
 /// impl Counter {
@@ -74,10 +74,10 @@ use syn::parse_macro_input;
 ///     pub amount: u32,
 /// }
 ///
-/// impl thespis::message::Message<Inc> for Counter {
+/// impl piying::message::Message<Inc> for Counter {
 ///     type Reply = i64;
 ///
-///     async fn handle(&mut self, msg: Inc, _ctx: &mut thespis::message::Context<Self, Self::Reply>) -> Self::Reply {
+///     async fn handle(&mut self, msg: Inc, _ctx: &mut piying::message::Context<Self, Self::Reply>) -> Self::Reply {
 ///         self.inc(msg.amount)
 ///     }
 /// }
@@ -87,10 +87,10 @@ use syn::parse_macro_input;
 ///     pub amount: u32,
 /// }
 ///
-/// impl thespis::message::Message<Dec> for Counter {
+/// impl piying::message::Message<Dec> for Counter {
 ///     type Reply = ();
 ///
-///     async fn handle(&mut self, msg: Dec, _ctx: &mut thespis::message::Context<Self, Self::Reply>) -> Self::Reply {
+///     async fn handle(&mut self, msg: Dec, _ctx: &mut piying::message::Context<Self, Self::Reply>) -> Self::Reply {
 ///         self.dec(msg.amount)
 ///     }
 /// }
@@ -100,20 +100,20 @@ use syn::parse_macro_input;
 ///     // Note: ctx is NOT included in the struct
 /// }
 ///
-/// impl thespis::message::Message<IncWithLogging> for Counter {
+/// impl piying::message::Message<IncWithLogging> for Counter {
 ///     type Reply = i64;
 ///
-///     async fn handle(&mut self, msg: IncWithLogging, ctx: &mut thespis::message::Context<Self, Self::Reply>) -> Self::Reply {
+///     async fn handle(&mut self, msg: IncWithLogging, ctx: &mut piying::message::Context<Self, Self::Reply>) -> Self::Reply {
 ///         self.inc_with_logging(msg.amount, ctx).await
 ///     }
 /// }
 ///
 /// pub struct Reset;
 ///
-/// impl thespis::message::Message<Reset> for Counter {
+/// impl piying::message::Message<Reset> for Counter {
 ///     type Reply = ();
 ///
-///     async fn handle(&mut self, msg: Reset, my_ctx: &mut thespis::message::Context<Self, Self::Reply>) -> Self::Reply {
+///     async fn handle(&mut self, msg: Reset, my_ctx: &mut piying::message::Context<Self, Self::Reply>) -> Self::Reply {
 ///         self.reset(my_ctx).await
 ///     }
 /// }
@@ -125,12 +125,12 @@ pub fn messages(_attr: TokenStream, item: TokenStream) -> TokenStream {
     TokenStream::from(messages.into_token_stream())
 }
 
-/// Derive macro implementing the [Actor](https://docs.rs/thespis/latest/thespis/actor/trait.Actor.html) trait with default behaviour.
+/// Derive macro implementing the [Actor](https://docs.rs/piying/latest/piying/actor/trait.Actor.html) trait with default behaviour.
 ///
-/// The `#[actor(name = "...")]` attribute can be specified to change the actors [Actor::name](https://docs.rs/thespis/latest/thespis/actor/trait.Actor.html#method.name).
+/// The `#[actor(name = "...")]` attribute can be specified to change the actors [Actor::name](https://docs.rs/piying/latest/piying/actor/trait.Actor.html#method.name).
 /// The default value is the actor's ident.
 ///
-/// The `#[actor(mailbox = ...)]` attribute can be specified to change the actors [Actor::Mailbox](https://docs.rs/thespis/latest/thespis/actor/trait.Actor.html#associatedtype.Mailbox).
+/// The `#[actor(mailbox = ...)]` attribute can be specified to change the actors [Actor::Mailbox](https://docs.rs/piying/latest/piying/actor/trait.Actor.html#associatedtype.Mailbox).
 /// The values can be one of:
 ///  - `bounded` (default capacity of 1000)
 ///  - `bounded(64)` (custom capacity of 64)
@@ -140,7 +140,7 @@ pub fn messages(_attr: TokenStream, item: TokenStream) -> TokenStream {
 /// # Example
 ///
 /// ```ignore
-/// use thespis::Actor;
+/// use piying::Actor;
 ///
 /// #[derive(Actor)]
 /// #[actor(name = "my_amazing_actor", mailbox = bounded(256))]
@@ -154,12 +154,12 @@ pub fn derive_actor(input: TokenStream) -> TokenStream {
     TokenStream::from(derive_actor.into_token_stream())
 }
 
-/// Derive macro implementing the [Reply](https://docs.rs/thespis/latest/thespis/reply/trait.Reply.html) trait as an infallible reply.
+/// Derive macro implementing the [Reply](https://docs.rs/piying/latest/piying/reply/trait.Reply.html) trait as an infallible reply.
 ///
 /// # Example
 ///
 /// ```ignore
-/// use thespis::Reply;
+/// use piying::Reply;
 ///
 /// #[derive(Reply)]
 /// struct Foo { }
@@ -170,7 +170,7 @@ pub fn derive_reply(input: TokenStream) -> TokenStream {
     TokenStream::from(derive_reply.into_token_stream())
 }
 
-/// Derive macro implementing the [RemoteActor](https://docs.rs/thespis/latest/thespis/actor/remote/trait.RemoteActor.html)
+/// Derive macro implementing the [RemoteActor](https://docs.rs/piying/latest/piying/actor/remote/trait.RemoteActor.html)
 /// trait with a default remote ID being the full path of the type being implemented.
 ///
 /// The `#[remote_actor(id = "...")]` attribute can be specified to change the default remote actor ID.
@@ -178,7 +178,7 @@ pub fn derive_reply(input: TokenStream) -> TokenStream {
 /// # Example
 ///
 /// ```ignore
-/// use thespis::RemoteActor;
+/// use piying::RemoteActor;
 ///
 /// #[derive(RemoteActor)]
 /// struct MyActor { }
@@ -196,7 +196,7 @@ pub fn derive_remote_actor(input: TokenStream) -> TokenStream {
 /// # Example
 ///
 /// ```ignore
-/// use thespis::{remote_message, message::Message};
+/// use piying::{remote_message, message::Message};
 ///
 /// struct MyActor { }
 /// struct MyMessage { }

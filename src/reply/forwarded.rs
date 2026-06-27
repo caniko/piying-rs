@@ -10,7 +10,7 @@
 /// ## Basic forwarding
 ///
 /// ```
-/// use thespis::{prelude::*, reply::ForwardedReply};
+/// use piying::{prelude::*, reply::ForwardedReply};
 /// use std::collections::HashMap;
 ///
 /// #[derive(Actor)]
@@ -54,7 +54,7 @@
 /// ## Error handling without forwarding
 ///
 /// ```
-/// use thespis::{prelude::*, reply::ForwardedReply};
+/// use piying::{prelude::*, reply::ForwardedReply};
 ///
 /// #[derive(Debug)]
 /// enum RouterError {
@@ -165,7 +165,7 @@ where
     /// # Example
     ///
     /// ```rust
-    /// use thespis::reply::ForwardedReply;
+    /// use piying::reply::ForwardedReply;
     ///
     /// // Create a direct successful response
     /// let reply: ForwardedReply<(), String> = ForwardedReply::from_ok("Success!".to_string());
@@ -184,7 +184,7 @@ where
     /// # Example
     ///
     /// ```rust
-    /// use thespis::reply::ForwardedReply;
+    /// use piying::reply::ForwardedReply;
     /// use std::{error, fmt};
     ///
     /// #[derive(Debug)]
@@ -218,7 +218,7 @@ where
     /// # Example
     ///
     /// ```rust
-    /// use thespis::reply::ForwardedReply;
+    /// use piying::reply::ForwardedReply;
     /// use std::{error, fmt};
     ///
     /// #[derive(Debug)]
@@ -313,4 +313,3 @@ where
             })
     }
 }
-

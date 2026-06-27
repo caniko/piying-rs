@@ -143,7 +143,7 @@ where
                         #[cfg(not(feature = "tracing"))]
                         let _ = &summary;
                         #[cfg(feature = "tracing")]
-                        tracing::warn!(%peer, %connection_id, %request_id, %summary, error = %remote_err, "thespis outbound request failed");
+                        tracing::warn!(%peer, %connection_id, %request_id, %summary, error = %remote_err, "piying outbound request failed");
                         let _ = tx.send(SwarmResponse::OutboundFailure(
                             WireRemoteSendError::from_infallible(&remote_err),
                         ));
@@ -157,7 +157,7 @@ where
                         #[cfg(not(feature = "tracing"))]
                         let _ = &summary;
                         #[cfg(feature = "tracing")]
-                        tracing::warn!(%peer, %connection_id, %request_id, %summary, error = %remote_err, "thespis outbound request failed");
+                        tracing::warn!(%peer, %connection_id, %request_id, %summary, error = %remote_err, "piying outbound request failed");
                         (
                             false,
                             Some(Event::OutboundFailure {
@@ -170,7 +170,7 @@ where
                     }
                     None => {
                         #[cfg(feature = "tracing")]
-                        tracing::warn!(%peer, %connection_id, %request_id, error = %remote_err, "thespis outbound request failed for unknown request context");
+                        tracing::warn!(%peer, %connection_id, %request_id, error = %remote_err, "piying outbound request failed for unknown request context");
                         (
                             false,
                             Some(Event::OutboundFailure {
@@ -411,7 +411,7 @@ where
                 #[cfg(not(feature = "tracing"))]
                 let _ = &summary;
                 #[cfg(feature = "tracing")]
-                tracing::trace!(%peer, %connection_id, %req_id, %summary, response = %res.summary(), "thespis response received");
+                tracing::trace!(%peer, %connection_id, %req_id, %summary, response = %res.summary(), "piying response received");
                 // Reply to channel
                 let _ = tx.send(res);
                 None
@@ -424,7 +424,7 @@ where
                 #[cfg(not(feature = "tracing"))]
                 let _ = &summary;
                 #[cfg(feature = "tracing")]
-                tracing::trace!(%peer, %connection_id, %req_id, %summary, response = %res.summary(), "thespis response received");
+                tracing::trace!(%peer, %connection_id, %req_id, %summary, response = %res.summary(), "piying response received");
                 // Emit event
                 Some(Event::from_swarm_resp(
                     res,

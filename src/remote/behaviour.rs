@@ -22,7 +22,7 @@ use super::{
 
 /// A network behaviour that combines messaging and registry capabilities for remote actor communication.
 ///
-/// This behaviour integrates Thespis's remote actor functionality with libp2p, providing:
+/// This behaviour integrates Piying's remote actor functionality with libp2p, providing:
 /// - Actor registration and discovery through a Kademlia-based registry
 /// - Remote message passing between actors across the network
 /// - Automatic lifecycle management for remote connections
@@ -34,12 +34,12 @@ use super::{
 /// # Example
 ///
 /// ```rust
-/// use thespis::remote;
+/// use piying::remote;
 /// use libp2p::{swarm::NetworkBehaviour, PeerId};
 ///
 /// #[derive(NetworkBehaviour)]
 /// struct MyBehaviour {
-///     thespis: remote::Behaviour,
+///     piying: remote::Behaviour,
 ///     // other behaviours...
 /// }
 ///
@@ -88,7 +88,7 @@ impl Behaviour<messaging::DefaultCodec> {
     /// # Example
     ///
     /// ```rust
-    /// use thespis::remote;
+    /// use piying::remote;
     /// use libp2p::PeerId;
     ///
     /// let peer_id = PeerId::random();

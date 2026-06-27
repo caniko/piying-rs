@@ -2343,6 +2343,58 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
+name = "piying"
+version = "0.19.2"
+dependencies = [
+ "anyhow",
+ "arc-swap",
+ "async-trait",
+ "const-fnv1a-hash",
+ "const-str 1.1.0",
+ "downcast-rs",
+ "dyn-clone",
+ "either",
+ "futures",
+ "hotpath",
+ "libp2p",
+ "libp2p-identity",
+ "libp2p-rkyv-codec",
+ "linkme",
+ "metrics",
+ "piying_actors",
+ "piying_macros",
+ "rkyv",
+ "rmp-serde",
+ "serde",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-test",
+ "tracing",
+]
+
+[[package]]
+name = "piying_actors"
+version = "0.4.0"
+dependencies = [
+ "futures",
+ "glob",
+ "piying",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-test",
+]
+
+[[package]]
+name = "piying_macros"
+version = "0.19.0"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "pkcs8"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3160,58 +3212,6 @@ dependencies = [
  "dirs-next",
  "rustversion",
  "winapi",
-]
-
-[[package]]
-name = "thespis"
-version = "0.19.2"
-dependencies = [
- "anyhow",
- "arc-swap",
- "async-trait",
- "const-fnv1a-hash",
- "const-str 1.1.0",
- "downcast-rs",
- "dyn-clone",
- "either",
- "futures",
- "hotpath",
- "libp2p",
- "libp2p-identity",
- "libp2p-rkyv-codec",
- "linkme",
- "metrics",
- "rkyv",
- "rmp-serde",
- "serde",
- "thespis_actors",
- "thespis_macros",
- "thiserror 2.0.18",
- "tokio",
- "tokio-test",
- "tracing",
-]
-
-[[package]]
-name = "thespis_actors"
-version = "0.4.0"
-dependencies = [
- "futures",
- "glob",
- "thespis",
- "thiserror 2.0.18",
- "tokio",
- "tokio-test",
-]
-
-[[package]]
-name = "thespis_macros"
-version = "0.19.0"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

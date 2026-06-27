@@ -11,11 +11,11 @@ where
     /// # Example
     ///
     /// ```
-    /// use thespis::Actor;
-    /// use thespis::actor::Spawn;
-    /// use thespis::message::{Context, Message, StreamMessage};
+    /// use piying::Actor;
+    /// use piying::actor::Spawn;
+    /// use piying::message::{Context, Message, StreamMessage};
     ///
-    /// #[derive(thespis::Actor)]
+    /// #[derive(piying::Actor)]
     /// struct MyActor;
     ///
     /// impl Message<StreamMessage<u32, (), ()>> for MyActor {

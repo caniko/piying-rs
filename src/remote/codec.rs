@@ -156,7 +156,7 @@ where
 }
 
 // ---------------------------------------------------------------------------
-// ThespisRkyvCodec — thin wrapper over libp2p_rkyv_codec for thespis wire types
+// PiyingRkyvCodec — thin wrapper over libp2p_rkyv_codec for piying wire types
 // ---------------------------------------------------------------------------
 
 #[cfg(feature = "rkyv-codec")]
@@ -174,32 +174,32 @@ mod rkyv_transport {
     const WIRE_VERSION: u16 = 2;
 
     #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-    struct ThespisWireRequestEnvelope {
+    struct PiyingWireRequestEnvelope {
         magic: [u8; 4],
         version: u16,
         request: SwarmRequest,
     }
 
     #[derive(Debug, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
-    struct ThespisWireResponseEnvelope {
+    struct PiyingWireResponseEnvelope {
         magic: [u8; 4],
         version: u16,
         response: SwarmResponse,
     }
 
-    /// Length-prefixed rkyv codec for thespis's remote messaging protocol.
+    /// Length-prefixed rkyv codec for piying's remote messaging protocol.
     ///
     /// The outer frame starts with `THSP`, a wire version, and the rkyv payload
     /// length so incompatible peers fail before actor/game dispatch.
-    pub struct ThespisRkyvCodec {
+    pub struct PiyingRkyvCodec {
         request_size_maximum: u64,
         response_size_maximum: u64,
     }
 
-    impl ThespisRkyvCodec {
-        /// Creates a new `ThespisRkyvCodec` from the messaging configuration.
+    impl PiyingRkyvCodec {
+        /// Creates a new `PiyingRkyvCodec` from the messaging configuration.
         pub fn new(config: &Config) -> Self {
-            ThespisRkyvCodec {
+            PiyingRkyvCodec {
                 request_size_maximum: config.request_size_maximum(),
                 response_size_maximum: config.response_size_maximum(),
             }
@@ -214,7 +214,7 @@ mod rkyv_transport {
         }
     }
 
-    impl Clone for ThespisRkyvCodec {
+    impl Clone for PiyingRkyvCodec {
         fn clone(&self) -> Self {
             Self {
                 request_size_maximum: self.request_size_maximum,
@@ -223,9 +223,9 @@ mod rkyv_transport {
         }
     }
 
-    impl std::fmt::Debug for ThespisRkyvCodec {
+    impl std::fmt::Debug for PiyingRkyvCodec {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            f.debug_struct("ThespisRkyvCodec")
+            f.debug_struct("PiyingRkyvCodec")
                 .field("wire_magic", &String::from_utf8_lossy(&WIRE_MAGIC))
                 .field("wire_version", &WIRE_VERSION)
                 .field("request_size_maximum", &self.request_size_maximum)
@@ -238,7 +238,7 @@ mod rkyv_transport {
         io::Error::new(io::ErrorKind::InvalidData, message.into())
     }
 
-    fn validate_request_envelope(envelope: ThespisWireRequestEnvelope) -> io::Result<SwarmRequest> {
+    fn validate_request_envelope(envelope: PiyingWireRequestEnvelope) -> io::Result<SwarmRequest> {
         if envelope.magic != WIRE_MAGIC {
             return Err(io_invalid_data(format!(
                 "request envelope bad magic: expected THSP, got {:02x?}",
@@ -255,7 +255,7 @@ mod rkyv_transport {
     }
 
     fn validate_response_envelope(
-        envelope: ThespisWireResponseEnvelope,
+        envelope: PiyingWireResponseEnvelope,
     ) -> io::Result<SwarmResponse> {
         if envelope.magic != WIRE_MAGIC {
             return Err(io_invalid_data(format!(
@@ -273,7 +273,7 @@ mod rkyv_transport {
     }
 
     #[async_trait]
-    impl request_response::Codec for ThespisRkyvCodec {
+    impl request_response::Codec for PiyingRkyvCodec {
         type Protocol = StreamProtocol;
         type Request = SwarmRequest;
         type Response = SwarmResponse;
@@ -288,11 +288,11 @@ mod rkyv_transport {
         {
             #[cfg(not(feature = "tracing"))]
             let _ = p;
-            let envelope: ThespisWireRequestEnvelope =
+            let envelope: PiyingWireRequestEnvelope =
                 read_versioned_rkyv(io, self.request_frame_config(), "request").await?;
             let request = validate_request_envelope(envelope)?;
             #[cfg(feature = "tracing")]
-            tracing::trace!(protocol = %p, summary = %request.summary(), "decoded thespis request");
+            tracing::trace!(protocol = %p, summary = %request.summary(), "decoded piying request");
             Ok(request)
         }
 
@@ -306,11 +306,11 @@ mod rkyv_transport {
         {
             #[cfg(not(feature = "tracing"))]
             let _ = p;
-            let envelope: ThespisWireResponseEnvelope =
+            let envelope: PiyingWireResponseEnvelope =
                 read_versioned_rkyv(io, self.response_frame_config(), "response").await?;
             let response = validate_response_envelope(envelope)?;
             #[cfg(feature = "tracing")]
-            tracing::trace!(protocol = %p, summary = %response.summary(), "decoded thespis response");
+            tracing::trace!(protocol = %p, summary = %response.summary(), "decoded piying response");
             Ok(response)
         }
 
@@ -326,8 +326,8 @@ mod rkyv_transport {
             #[cfg(not(feature = "tracing"))]
             let _ = p;
             #[cfg(feature = "tracing")]
-            tracing::trace!(protocol = %p, summary = %req.summary(), "encoding thespis request");
-            let envelope = ThespisWireRequestEnvelope {
+            tracing::trace!(protocol = %p, summary = %req.summary(), "encoding piying request");
+            let envelope = PiyingWireRequestEnvelope {
                 magic: WIRE_MAGIC,
                 version: WIRE_VERSION,
                 request: req,
@@ -347,8 +347,8 @@ mod rkyv_transport {
             #[cfg(not(feature = "tracing"))]
             let _ = p;
             #[cfg(feature = "tracing")]
-            tracing::trace!(protocol = %p, summary = %resp.summary(), "encoding thespis response");
-            let envelope = ThespisWireResponseEnvelope {
+            tracing::trace!(protocol = %p, summary = %resp.summary(), "encoding piying response");
+            let envelope = PiyingWireResponseEnvelope {
                 magic: WIRE_MAGIC,
                 version: WIRE_VERSION,
                 response: resp,
@@ -379,13 +379,13 @@ mod rkyv_transport {
                 mailbox_timeout: None,
                 immediate: false,
             };
-            let envelope = ThespisWireRequestEnvelope {
+            let envelope = PiyingWireRequestEnvelope {
                 magic: WIRE_MAGIC,
                 version: WIRE_VERSION,
                 request,
             };
             let payload = libp2p_rkyv_codec::encode_rkyv(&envelope).unwrap();
-            let decoded: ThespisWireRequestEnvelope =
+            let decoded: PiyingWireRequestEnvelope =
                 libp2p_rkyv_codec::decode_rkyv(&payload).unwrap();
             let request = validate_request_envelope(decoded).unwrap();
             assert_eq!(request.summary(), "Tell actor::message payload=3B");
@@ -393,13 +393,13 @@ mod rkyv_transport {
 
         #[test]
         fn response_envelope_roundtrip() {
-            let envelope = ThespisWireResponseEnvelope {
+            let envelope = PiyingWireResponseEnvelope {
                 magic: WIRE_MAGIC,
                 version: WIRE_VERSION,
                 response: SwarmResponse::Tell(Ok(())),
             };
             let payload = libp2p_rkyv_codec::encode_rkyv(&envelope).unwrap();
-            let decoded: ThespisWireResponseEnvelope =
+            let decoded: PiyingWireResponseEnvelope =
                 libp2p_rkyv_codec::decode_rkyv(&payload).unwrap();
             let response = validate_response_envelope(decoded).unwrap();
             assert_eq!(response.summary(), "Tell ok");
@@ -413,7 +413,7 @@ mod rkyv_transport {
             let mut cursor = futures::io::Cursor::new(header);
             let config = VersionedFrameConfig::new(WIRE_MAGIC, WIRE_VERSION, 1024);
             assert!(
-                read_versioned_rkyv::<ThespisWireRequestEnvelope, _>(
+                read_versioned_rkyv::<PiyingWireRequestEnvelope, _>(
                     &mut cursor,
                     config,
                     "request"
@@ -433,7 +433,7 @@ mod rkyv_transport {
             let mut cursor = futures::io::Cursor::new(header);
             let config = VersionedFrameConfig::new(WIRE_MAGIC, WIRE_VERSION, 1024);
             assert!(
-                read_versioned_rkyv::<ThespisWireRequestEnvelope, _>(
+                read_versioned_rkyv::<PiyingWireRequestEnvelope, _>(
                     &mut cursor,
                     config,
                     "request"
@@ -448,7 +448,7 @@ mod rkyv_transport {
 }
 
 #[cfg(feature = "rkyv-codec")]
-pub use rkyv_transport::ThespisRkyvCodec;
+pub use rkyv_transport::PiyingRkyvCodec;
 
 // ---------------------------------------------------------------------------
 // Tests

@@ -333,7 +333,7 @@ impl<'de> Deserialize<'de> for PanicError {
 
 /// Describes the cause of an actor panic or fatal error.
 ///
-/// In thespis, several error conditions are treated as panics, triggering the
+/// In piying, several error conditions are treated as panics, triggering the
 /// [`on_panic`](crate::actor::Actor::on_panic) lifecycle hook and potentially
 /// stopping the actor.
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -381,7 +381,7 @@ impl PanicReason {
     /// # Example
     ///
     /// ```rust
-    /// use thespis::error::PanicReason;
+    /// use piying::error::PanicReason;
     ///
     /// assert!(PanicReason::OnStart.is_lifecycle_hook());
     /// assert!(!PanicReason::HandlerPanic.is_lifecycle_hook());
@@ -404,7 +404,7 @@ impl PanicReason {
     /// # Example
     ///
     /// ```rust
-    /// use thespis::error::PanicReason;
+    /// use piying::error::PanicReason;
     ///
     /// assert!(PanicReason::HandlerPanic.is_message_processing());
     /// assert!(PanicReason::OnMessage.is_message_processing());
@@ -428,4 +428,3 @@ impl fmt::Display for PanicReason {
         }
     }
 }
-

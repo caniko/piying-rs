@@ -17,9 +17,9 @@
 //! ```
 //! use std::collections::HashMap;
 //!
-//! use thespis::prelude::*;
-//! use thespis_actors::DeliveryStrategy;
-//! use thespis_actors::message_queue::{
+//! use piying::prelude::*;
+//! use piying_actors::DeliveryStrategy;
+//! use piying_actors::message_queue::{
 //!     BasicConsume, BasicPublish, ExchangeDeclare, ExchangeType, MessageQueue, QueueBind,
 //!     QueueDeclare,
 //! };
@@ -88,7 +88,7 @@ use std::{
 };
 
 use glob::{MatchOptions, Pattern};
-use thespis::prelude::*;
+use piying::prelude::*;
 
 use crate::DeliveryStrategy;
 

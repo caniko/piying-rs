@@ -35,7 +35,7 @@ thread_local! {
     static THREAD_LOCAL_SWARM: RefCell<Option<Arc<ActorSwarm>>> = const { RefCell::new(None) };
 }
 
-/// `ActorSwarm` is the core component for remote actors within Thespis.
+/// `ActorSwarm` is the core component for remote actors within Piying.
 ///
 /// It is responsible for managing a swarm of distributed nodes using libp2p,
 /// enabling peer discovery, actor registration, and remote message routing.

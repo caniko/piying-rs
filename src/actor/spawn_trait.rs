@@ -20,8 +20,8 @@
 /// ## Basic Spawning
 ///
 /// ```
-/// use thespis::Actor;
-/// use thespis::actor::Spawn;
+/// use piying::Actor;
+/// use piying::actor::Spawn;
 ///
 /// #[derive(Actor)]
 /// struct Counter {
@@ -37,8 +37,8 @@
 /// ## Default Spawning
 ///
 /// ```
-/// use thespis::Actor;
-/// use thespis::actor::Spawn;
+/// use piying::Actor;
+/// use piying::actor::Spawn;
 ///
 /// #[derive(Actor, Default)]
 /// struct Counter {
@@ -54,9 +54,9 @@
 /// ## Custom Mailbox
 ///
 /// ```
-/// use thespis::Actor;
-/// use thespis::actor::Spawn;
-/// use thespis::mailbox;
+/// use piying::Actor;
+/// use piying::actor::Spawn;
+/// use piying::mailbox;
 ///
 /// #[derive(Actor)]
 /// struct HighThroughput;
@@ -74,8 +74,8 @@
 ///
 /// ```no_run
 /// use std::fs::File;
-/// use thespis::Actor;
-/// use thespis::actor::Spawn;
+/// use piying::Actor;
+/// use piying::actor::Spawn;
 ///
 /// #[derive(Actor)]
 /// struct FileWriter {
@@ -91,8 +91,8 @@
 /// ## Supervision
 ///
 /// ```
-/// use thespis::Actor;
-/// use thespis::actor::Spawn;
+/// use piying::Actor;
+/// use piying::actor::Spawn;
 ///
 /// #[derive(Actor)]
 /// struct Supervisor;
@@ -130,8 +130,8 @@ pub trait Spawn: Actor + private::Sealed {
     /// # Example
     ///
     /// ```
-    /// use thespis::Actor;
-    /// use thespis::actor::Spawn;
+    /// use piying::Actor;
+    /// use piying::actor::Spawn;
     ///
     /// #[derive(Actor)]
     /// struct MyActor;
@@ -160,8 +160,8 @@ pub trait Spawn: Actor + private::Sealed {
     /// # Example
     ///
     /// ```
-    /// use thespis::Actor;
-    /// use thespis::actor::Spawn;
+    /// use piying::Actor;
+    /// use piying::actor::Spawn;
     ///
     /// #[derive(Actor, Default)]
     /// struct MyActor {
@@ -194,9 +194,9 @@ pub trait Spawn: Actor + private::Sealed {
     /// # Example
     ///
     /// ```
-    /// use thespis::Actor;
-    /// use thespis::actor::Spawn;
-    /// use thespis::mailbox;
+    /// use piying::Actor;
+    /// use piying::actor::Spawn;
+    /// use piying::mailbox;
     ///
     /// #[derive(Actor)]
     /// struct MyActor;
@@ -230,8 +230,8 @@ pub trait Spawn: Actor + private::Sealed {
     /// # Example
     ///
     /// ```
-    /// use thespis::Actor;
-    /// use thespis::actor::Spawn;
+    /// use piying::Actor;
+    /// use piying::actor::Spawn;
     ///
     /// #[derive(Actor)]
     /// struct FooActor;
@@ -267,9 +267,9 @@ pub trait Spawn: Actor + private::Sealed {
     /// # Example
     ///
     /// ```
-    /// use thespis::Actor;
-    /// use thespis::actor::Spawn;
-    /// use thespis::mailbox;
+    /// use piying::Actor;
+    /// use piying::actor::Spawn;
+    /// use piying::mailbox;
     ///
     /// #[derive(Actor)]
     /// struct FooActor;
@@ -315,9 +315,9 @@ pub trait Spawn: Actor + private::Sealed {
     /// use std::io::{self, Write};
     /// use std::fs::File;
     ///
-    /// use thespis::Actor;
-    /// use thespis::actor::Spawn;
-    /// use thespis::message::{Context, Message};
+    /// use piying::Actor;
+    /// use piying::actor::Spawn;
+    /// use piying::message::{Context, Message};
     ///
     /// #[derive(Actor)]
     /// struct MyActor {
@@ -337,7 +337,7 @@ pub trait Spawn: Actor + private::Sealed {
     ///     MyActor { file: File::create("output.txt").unwrap() }
     /// );
     /// actor_ref.tell(Flush).blocking_send()?;
-    /// # Ok::<(), thespis::error::SendError<Flush>>(())
+    /// # Ok::<(), piying::error::SendError<Flush>>(())
     /// ```
     ///
     /// This function is useful for actors that require or benefit from running blocking operations while still
@@ -357,10 +357,10 @@ pub trait Spawn: Actor + private::Sealed {
     /// use std::io::{self, Write};
     /// use std::fs::File;
     ///
-    /// use thespis::Actor;
-    /// use thespis::actor::Spawn;
-    /// use thespis::mailbox;
-    /// use thespis::message::{Context, Message};
+    /// use piying::Actor;
+    /// use piying::actor::Spawn;
+    /// use piying::mailbox;
+    /// use piying::message::{Context, Message};
     ///
     /// #[derive(Actor)]
     /// struct MyActor {
@@ -381,7 +381,7 @@ pub trait Spawn: Actor + private::Sealed {
     ///     mailbox::bounded(100)
     /// );
     /// actor_ref.tell(Flush).blocking_send()?;
-    /// # Ok::<(), thespis::error::SendError<Flush>>(())
+    /// # Ok::<(), piying::error::SendError<Flush>>(())
     /// ```
     fn spawn_in_thread_with_mailbox(
         args: Self::Args,
@@ -398,8 +398,8 @@ pub trait Spawn: Actor + private::Sealed {
     /// # Example
     ///
     /// ```
-    /// use thespis::Actor;
-    /// use thespis::actor::Spawn;
+    /// use piying::Actor;
+    /// use piying::actor::Spawn;
     ///
     /// #[derive(Actor)]
     /// struct MyActor;
@@ -424,9 +424,9 @@ pub trait Spawn: Actor + private::Sealed {
     /// # Example
     ///
     /// ```
-    /// use thespis::Actor;
-    /// use thespis::actor::Spawn;
-    /// use thespis::mailbox;
+    /// use piying::Actor;
+    /// use piying::actor::Spawn;
+    /// use piying::mailbox;
     ///
     ///  #[derive(Actor)]
     ///  struct MyActor;

@@ -16,9 +16,9 @@ impl ToTokens for DeriveReply {
 
         tokens.extend(quote! {
             #[automatically_derived]
-            impl #impl_generics ::thespis::Reply for #ident #ty_generics #where_clause {
+            impl #impl_generics ::piying::Reply for #ident #ty_generics #where_clause {
                 type Ok = Self;
-                type Error = ::thespis::error::Infallible;
+                type Error = ::piying::error::Infallible;
                 type Value = Self;
 
                 #[inline]
@@ -27,7 +27,7 @@ impl ToTokens for DeriveReply {
                 }
 
                 #[inline]
-                fn into_any_err(self) -> ::std::option::Option<::std::boxed::Box<dyn ::thespis::reply::ReplyError>> {
+                fn into_any_err(self) -> ::std::option::Option<::std::boxed::Box<dyn ::piying::reply::ReplyError>> {
                     ::std::option::Option::None
                 }
 

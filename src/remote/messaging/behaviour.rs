@@ -77,7 +77,7 @@ impl<Req, Resp> From<Config> for request_response::cbor::codec::Codec<Req, Resp>
 #[cfg(feature = "serde-codec")]
 pub type DefaultCodec = request_response::cbor::codec::Codec<SwarmRequest, SwarmResponse>;
 
-/// `Behaviour` is a `NetworkBehaviour` that implements the thespis messaging behaviour
+/// `Behaviour` is a `NetworkBehaviour` that implements the piying messaging behaviour
 /// on top of the request response protocol.
 ///
 /// When the `serde-codec` feature is enabled, the codec type parameter `C` defaults
@@ -93,7 +93,7 @@ pub struct Behaviour<C: request_response::Codec + Clone + Send + 'static = Defau
     join_set: JoinSet<(ReplyChannel, SwarmResponse)>,
 }
 
-/// `Behaviour` is a `NetworkBehaviour` that implements the thespis messaging behaviour
+/// `Behaviour` is a `NetworkBehaviour` that implements the piying messaging behaviour
 /// on top of the request response protocol.
 ///
 /// Supply a codec implementing [`request_response::Codec`] via [`Behaviour::with_codec`].
@@ -185,7 +185,7 @@ where
                 #[cfg(not(feature = "tracing"))]
                 let _ = request_id;
                 #[cfg(feature = "tracing")]
-                tracing::warn!(%peer_id, %request_id, summary = %context.summary, "thespis dial failure for pending request");
+                tracing::warn!(%peer_id, %request_id, summary = %context.summary, "piying dial failure for pending request");
                 if let Some(tx) = context.reply {
                     let _ = tx.send(SwarmResponse::OutboundFailure(
                         WireRemoteSendError::DialFailure,

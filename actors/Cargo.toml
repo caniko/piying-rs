@@ -1,11 +1,11 @@
 [package]
-name = "thespis_actors"
+name = "piying_actors"
 version = "0.4.0"
 edition = "2024"
 rust-version = "1.88.0"
-description = "Utility actors for thespis"
+description = "Utility actors for piying"
 readme = "../README.md"
-repository = "https://codeberg.org/caniko/rs-thespis"
+repository = "https://codeberg.org/caniko/rs-piying"
 license = "MIT OR Apache-2.0"
 keywords = ["actor", "tokio", "broker", "pool", "pubsub"]
 categories = ["asynchronous", "concurrency", "rust-patterns"]
@@ -15,7 +15,7 @@ include = ["/src"]
 futures.workspace = true
 glob = "0.3.2"
 thiserror = "2.0.12"
-thespis.workspace = true
+piying.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]

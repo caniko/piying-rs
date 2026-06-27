@@ -1,6 +1,6 @@
-//! Defines error handling constructs for thespis.
+//! Defines error handling constructs for piying.
 //!
-//! This module centralizes error types used throughout thespis, encapsulating common failure scenarios encountered
+//! This module centralizes error types used throughout piying, encapsulating common failure scenarios encountered
 //! in actor lifecycle management, message passing, and actor interaction. It simplifies error handling by providing
 //! a consistent set of errors that can occur in the operation of actors and their communications.
 
@@ -51,7 +51,7 @@ fn default_panic_hook(err: &PanicError) {
 /// # Example
 ///
 /// ```
-/// use thespis::error::{set_actor_error_hook, PanicError};
+/// use piying::error::{set_actor_error_hook, PanicError};
 ///
 /// // Define a custom error hook
 /// fn my_custom_hook(err: &PanicError) {

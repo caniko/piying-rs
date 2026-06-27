@@ -27,9 +27,9 @@ impl ToTokens for DeriveActor {
 
         tokens.extend(quote! {
             #[automatically_derived]
-            impl #impl_generics ::thespis::actor::Actor for #ident #ty_generics #where_clause {
+            impl #impl_generics ::piying::actor::Actor for #ident #ty_generics #where_clause {
                 type Args = Self;
-                type Error = ::thespis::error::Infallible;
+                type Error = ::piying::error::Infallible;
 
                 fn name() -> &'static str {
                     #name
@@ -37,7 +37,7 @@ impl ToTokens for DeriveActor {
 
                 async fn on_start(
                     state: Self::Args,
-                    _actor_ref: ::thespis::actor::ActorRef<Self>,
+                    _actor_ref: ::piying::actor::ActorRef<Self>,
                 ) -> ::std::result::Result<Self, Self::Error> {
                     ::std::result::Result::Ok(state)
                 }

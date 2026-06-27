@@ -52,9 +52,9 @@ impl RemoteMessage {
                 .to_string()
                 .replace(' ', "");
             quote! {
-                ::thespis::remote::_internal::const_str::format!(
+                ::piying::remote::_internal::const_str::format!(
                     "{:x}",
-                    ::thespis::remote::_internal::const_fnv1a_hash::fnv1a_hash_str_64(concat!(
+                    ::piying::remote::_internal::const_fnv1a_hash::fnv1a_hash_str_64(concat!(
                         env!("CARGO_PKG_NAME"),
                         "::",
                         env!("CARGO_PKG_VERSION_MAJOR"),
@@ -76,29 +76,29 @@ impl RemoteMessage {
             #item_impl
 
             #[automatically_derived]
-            impl #impl_generics ::thespis::remote::RemoteMessage<#message_generics> for #actor_ty #ty_generics #where_clause {
+            impl #impl_generics ::piying::remote::RemoteMessage<#message_generics> for #actor_ty #ty_generics #where_clause {
                 const REMOTE_ID: &'static str = #id;
             }
 
             const _: () = {
-                #[::thespis::remote::_internal::linkme::distributed_slice(
-                    ::thespis::remote::_internal::REMOTE_MESSAGES
+                #[::piying::remote::_internal::linkme::distributed_slice(
+                    ::piying::remote::_internal::REMOTE_MESSAGES
                 )]
-                #[linkme(crate = ::thespis::remote::_internal::linkme)]
+                #[linkme(crate = ::piying::remote::_internal::linkme)]
                 static REG: (
-                    ::thespis::remote::_internal::RemoteMessageRegistrationID<'static>,
-                    ::thespis::remote::_internal::RemoteMessageFns,
+                    ::piying::remote::_internal::RemoteMessageRegistrationID<'static>,
+                    ::piying::remote::_internal::RemoteMessageFns,
                 ) = (
-                    ::thespis::remote::_internal::RemoteMessageRegistrationID {
-                        actor_remote_id: <#actor_ty as ::thespis::remote::RemoteActor>::REMOTE_ID,
-                        message_remote_id: <#actor_ty #ty_generics as ::thespis::remote::RemoteMessage<#message_generics>>::REMOTE_ID,
+                    ::piying::remote::_internal::RemoteMessageRegistrationID {
+                        actor_remote_id: <#actor_ty as ::piying::remote::RemoteActor>::REMOTE_ID,
+                        message_remote_id: <#actor_ty #ty_generics as ::piying::remote::RemoteMessage<#message_generics>>::REMOTE_ID,
                     },
-                    ::thespis::remote::_internal::RemoteMessageFns {
-                        ask: (|actor_id: ::thespis::actor::ActorId,
+                    ::piying::remote::_internal::RemoteMessageFns {
+                        ask: (|actor_id: ::piying::actor::ActorId,
                               msg: ::std::vec::Vec<u8>,
                               mailbox_timeout: ::std::option::Option<::std::time::Duration>,
                               reply_timeout: ::std::option::Option<::std::time::Duration>| {
-                                ::std::boxed::Box::pin(::thespis::remote::_internal::ask::<
+                                ::std::boxed::Box::pin(::piying::remote::_internal::ask::<
                                     #actor_ty,
                                     #message_generics,
                                 >(
@@ -107,11 +107,11 @@ impl RemoteMessage {
                                     mailbox_timeout,
                                     reply_timeout,
                                 ))
-                            }) as ::thespis::remote::_internal::RemoteAskFn,
-                        try_ask: (|actor_id: ::thespis::actor::ActorId,
+                            }) as ::piying::remote::_internal::RemoteAskFn,
+                        try_ask: (|actor_id: ::piying::actor::ActorId,
                               msg: ::std::vec::Vec<u8>,
                               reply_timeout: ::std::option::Option<::std::time::Duration>| {
-                                ::std::boxed::Box::pin(::thespis::remote::_internal::try_ask::<
+                                ::std::boxed::Box::pin(::piying::remote::_internal::try_ask::<
                                     #actor_ty,
                                     #message_generics,
                                 >(
@@ -119,11 +119,11 @@ impl RemoteMessage {
                                     msg,
                                     reply_timeout,
                                 ))
-                            }) as ::thespis::remote::_internal::RemoteTryAskFn,
-                        tell: (|actor_id: ::thespis::actor::ActorId,
+                            }) as ::piying::remote::_internal::RemoteTryAskFn,
+                        tell: (|actor_id: ::piying::actor::ActorId,
                               msg: ::std::vec::Vec<u8>,
                               mailbox_timeout: ::std::option::Option<::std::time::Duration>| {
-                                ::std::boxed::Box::pin(::thespis::remote::_internal::tell::<
+                                ::std::boxed::Box::pin(::piying::remote::_internal::tell::<
                                     #actor_ty,
                                     #message_generics,
                                 >(
@@ -131,17 +131,17 @@ impl RemoteMessage {
                                     msg,
                                     mailbox_timeout,
                                 ))
-                            }) as ::thespis::remote::_internal::RemoteTellFn,
-                        try_tell: (|actor_id: ::thespis::actor::ActorId,
+                            }) as ::piying::remote::_internal::RemoteTellFn,
+                        try_tell: (|actor_id: ::piying::actor::ActorId,
                               msg: ::std::vec::Vec<u8>| {
-                                ::std::boxed::Box::pin(::thespis::remote::_internal::try_tell::<
+                                ::std::boxed::Box::pin(::piying::remote::_internal::try_tell::<
                                     #actor_ty,
                                     #message_generics,
                                 >(
                                     actor_id,
                                     msg,
                                 ))
-                            }) as ::thespis::remote::_internal::RemoteTryTellFn,
+                            }) as ::piying::remote::_internal::RemoteTryTellFn,
                     },
                 );
             };
@@ -158,7 +158,7 @@ impl Parse for RemoteMessage {
         let (_, trait_path, _) = item_impl.trait_.as_ref().ok_or_else(|| {
             syn::Error::new(
                 input_span,
-                "remote message can only be used on an impl for thespis::message::Message",
+                "remote message can only be used on an impl for piying::message::Message",
             )
         })?;
         let trait_path_span = trait_path.span();

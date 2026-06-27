@@ -217,8 +217,8 @@ where
     /// ```
     /// use std::time::Duration;
     ///
-    /// use thespis::actor::{Actor, ActorRef, Spawn};
-    /// use thespis::error::Infallible;
+    /// use piying::actor::{Actor, ActorRef, Spawn};
+    /// use piying::error::Infallible;
     /// use tokio::time::sleep;
     ///
     /// struct MyActor;
@@ -258,7 +258,7 @@ where
     /// ```
     /// use std::num::ParseIntError;
     ///
-    /// use thespis::actor::{Actor, ActorRef, Spawn};
+    /// use piying::actor::{Actor, ActorRef, Spawn};
     ///
     /// struct MyActor;
     ///
@@ -301,7 +301,7 @@ where
     /// # Example
     ///
     /// ```
-    /// use thespis::actor::{Actor, ActorRef, Spawn};
+    /// use piying::actor::{Actor, ActorRef, Spawn};
     ///
     /// struct MyActor;
     ///
@@ -382,8 +382,8 @@ where
     /// ```
     /// use std::num::ParseIntError;
     ///
-    /// use thespis::actor::{Actor, ActorRef, Spawn, WeakActorRef};
-    /// use thespis::error::ActorStopReason;
+    /// use piying::actor::{Actor, ActorRef, Spawn, WeakActorRef};
+    /// use piying::error::ActorStopReason;
     ///
     /// struct MyActor;
     ///
@@ -436,8 +436,8 @@ where
     /// # Example
     ///
     /// ```
-    /// use thespis::actor::{Actor, ActorRef, Spawn, WeakActorRef};
-    /// use thespis::error::ActorStopReason;
+    /// use piying::actor::{Actor, ActorRef, Spawn, WeakActorRef};
+    /// use piying::error::ActorStopReason;
     ///
     /// struct MyActor;
     ///

@@ -13,7 +13,7 @@
 /// # Example with Derive
 ///
 /// ```
-/// use thespis::Actor;
+/// use piying::Actor;
 ///
 /// #[derive(Actor)]
 /// struct MyActor;
@@ -22,8 +22,8 @@
 /// # Example Override Behaviour
 ///
 /// ```
-/// use thespis::actor::{Actor, ActorRef, WeakActorRef};
-/// use thespis::error::{ActorStopReason, Infallible};
+/// use piying::actor::{Actor, ActorRef, WeakActorRef};
+/// use piying::error::{ActorStopReason, Infallible};
 ///
 /// struct MyActor;
 ///
@@ -99,8 +99,8 @@ pub trait Actor: Sized + Send + 'static {
     /// # Example
     ///
     /// ```rust
-    /// # use thespis::actor::{Actor, ActorRef};
-    /// # use thespis::error::Infallible;
+    /// # use piying::actor::{Actor, ActorRef};
+    /// # use piying::error::Infallible;
     /// #
     /// struct MyActor;
     ///
@@ -225,7 +225,7 @@ pub trait Actor: Sized + Send + 'static {
     ///
     /// This allows the actor to perform any necessary cleanup or release resources before being fully stopped.
     ///
-    /// The error returned by this method will be unwraped by thespis, causing a panic in the tokio task or
+    /// The error returned by this method will be unwraped by piying, causing a panic in the tokio task or
     /// thread running the actor.
     #[allow(unused_variables)]
     #[inline]
@@ -251,4 +251,3 @@ pub trait Actor: Sized + Send + 'static {
         mailbox_rx.recv()
     }
 }
-

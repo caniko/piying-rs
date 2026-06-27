@@ -29,61 +29,61 @@ impl ToTokens for DeriveRemoteActor {
 
         tokens.extend(quote! {
             #[automatically_derived]
-            impl #impl_generics ::thespis::remote::RemoteActor for #ident #ty_generics #where_clause {
+            impl #impl_generics ::piying::remote::RemoteActor for #ident #ty_generics #where_clause {
                 const REMOTE_ID: &'static str = #id;
             }
 
             const _: () = {
-                #[::thespis::remote::_internal::linkme::distributed_slice(
-                    ::thespis::remote::_internal::REMOTE_ACTORS
+                #[::piying::remote::_internal::linkme::distributed_slice(
+                    ::piying::remote::_internal::REMOTE_ACTORS
                 )]
-                #[linkme(crate = ::thespis::remote::_internal::linkme)]
+                #[linkme(crate = ::piying::remote::_internal::linkme)]
                 static REG: (
                     &'static str,
-                    ::thespis::remote::_internal::RemoteActorFns,
+                    ::piying::remote::_internal::RemoteActorFns,
                 ) = (
-                    <#ident #ty_generics as ::thespis::remote::RemoteActor>::REMOTE_ID,
-                    ::thespis::remote::_internal::RemoteActorFns {
+                    <#ident #ty_generics as ::piying::remote::RemoteActor>::REMOTE_ID,
+                    ::piying::remote::_internal::RemoteActorFns {
                         link: (
                             |
-                              actor_id: ::thespis::actor::ActorId,
-                              sibling_id: ::thespis::actor::ActorId,
+                              actor_id: ::piying::actor::ActorId,
+                              sibling_id: ::piying::actor::ActorId,
                               sibling_remote_id: ::std::borrow::Cow<'static, str>,
                             | {
-                                ::std::boxed::Box::pin(::thespis::remote::_internal::link::<
+                                ::std::boxed::Box::pin(::piying::remote::_internal::link::<
                                     #ident #ty_generics,
                                 >(
                                     actor_id,
                                     sibling_id,
                                     sibling_remote_id,
                                 ))
-                            }) as ::thespis::remote::_internal::RemoteLinkFn,
+                            }) as ::piying::remote::_internal::RemoteLinkFn,
                         unlink: (
                             |
-                              actor_id: ::thespis::actor::ActorId,
-                              sibling_id: ::thespis::actor::ActorId,
+                              actor_id: ::piying::actor::ActorId,
+                              sibling_id: ::piying::actor::ActorId,
                             | {
-                                ::std::boxed::Box::pin(::thespis::remote::_internal::unlink::<
+                                ::std::boxed::Box::pin(::piying::remote::_internal::unlink::<
                                     #ident #ty_generics,
                                 >(
                                     actor_id,
                                     sibling_id,
                                 ))
-                            }) as ::thespis::remote::_internal::RemoteUnlinkFn,
+                            }) as ::piying::remote::_internal::RemoteUnlinkFn,
                         signal_link_died: (
                             |
-                              dead_actor_id: ::thespis::actor::ActorId,
-                              notified_actor_id: ::thespis::actor::ActorId,
-                              stop_reason: thespis::error::ActorStopReason,
+                              dead_actor_id: ::piying::actor::ActorId,
+                              notified_actor_id: ::piying::actor::ActorId,
+                              stop_reason: piying::error::ActorStopReason,
                             | {
-                                ::std::boxed::Box::pin(::thespis::remote::_internal::signal_link_died::<
+                                ::std::boxed::Box::pin(::piying::remote::_internal::signal_link_died::<
                                     #ident #ty_generics,
                                 >(
                                     dead_actor_id,
                                     notified_actor_id,
                                     stop_reason,
                                 ))
-                            }) as ::thespis::remote::_internal::RemoteSignalLinkDiedFn,
+                            }) as ::piying::remote::_internal::RemoteSignalLinkDiedFn,
                     },
                 );
             };

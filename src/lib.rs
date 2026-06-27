@@ -19,19 +19,19 @@ pub mod request;
 pub use actor::Actor;
 pub use reply::Reply;
 #[cfg(feature = "macros")]
-pub use thespis_macros::{Actor, RemoteActor, Reply, messages, remote_message};
+pub use piying_macros::{Actor, RemoteActor, Reply, messages, remote_message};
 
 /// Commonly used types and functions that can be imported with a single use statement.
 ///
 /// ```
-/// use thespis::prelude::*;
+/// use piying::prelude::*;
 /// ```
 ///
 /// This module includes the most essential actor components, messaging types,
 /// and traits needed for typical actor system usage.
 pub mod prelude {
     #[cfg(feature = "macros")]
-    pub use thespis_macros::{Actor, RemoteActor, Reply, messages, remote_message};
+    pub use piying_macros::{Actor, RemoteActor, Reply, messages, remote_message};
 
     #[cfg(feature = "remote")]
     pub use crate::actor::RemoteActorRef;

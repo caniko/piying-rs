@@ -1,8 +1,8 @@
-//! # Remote Actors in Thespis
+//! # Remote Actors in Piying
 //!
-//! The `remote` module in Thespis provides tools for managing distributed actors across nodes,
+//! The `remote` module in Piying provides tools for managing distributed actors across nodes,
 //! enabling actors to communicate seamlessly in a peer-to-peer (P2P) network. By leveraging
-//! the [libp2p](https://libp2p.io) library, Thespis allows you to register actors under unique
+//! the [libp2p](https://libp2p.io) library, Piying allows you to register actors under unique
 //! names and send messages between actors on different nodes as though they were local.
 //!
 //! ## Key Features
@@ -25,7 +25,7 @@
 //! For quick prototyping and development:
 //!
 //! ```ignore
-//! use thespis::remote;
+//! use piying::remote;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -42,12 +42,12 @@
 //! For production deployments with custom configuration:
 //!
 //! ```ignore
-//! use thespis::remote;
+//! use piying::remote;
 //! use libp2p::swarm::NetworkBehaviour;
 //!
 //! #[derive(NetworkBehaviour)]
 //! struct MyBehaviour {
-//!     thespis: remote::Behaviour,
+//!     piying: remote::Behaviour,
 //!     // Add other libp2p behaviors as needed
 //! }
 //!
@@ -191,7 +191,7 @@ pub(crate) enum BoxRegisteredActorRef {
 /// ## Example with Derive
 ///
 /// ```
-/// use thespis::{Actor, RemoteActor};
+/// use piying::{Actor, RemoteActor};
 ///
 /// #[derive(Actor, RemoteActor)]
 /// pub struct MyActor;
@@ -200,7 +200,7 @@ pub(crate) enum BoxRegisteredActorRef {
 /// ## Example Manual Implementation
 ///
 /// ```
-/// use thespis::remote::RemoteActor;
+/// use piying::remote::RemoteActor;
 ///
 /// pub struct MyActor;
 ///
@@ -233,7 +233,7 @@ pub trait RemoteMessage<M> {
 ///
 /// Requires the `serde-codec` feature (uses CBOR for transport encoding).
 ///
-/// For production use or custom configuration, use `thespis::remote::Behaviour`
+/// For production use or custom configuration, use `piying::remote::Behaviour`
 /// with your own libp2p swarm setup.
 ///
 /// # Example
@@ -263,7 +263,7 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 
     #[derive(NetworkBehaviour)]
     struct BootstrapBehaviour {
-        thespis: Behaviour,
+        piying: Behaviour,
         mdns: mdns::tokio::Behaviour,
     }
 
@@ -277,14 +277,14 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
         .with_quic()
         .with_behaviour(|key| {
             let local_peer_id = key.public().to_peer_id();
-            let thespis = Behaviour::new(local_peer_id, messaging::Config::default());
+            let piying = Behaviour::new(local_peer_id, messaging::Config::default());
             let mdns = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)?;
 
-            Ok(BootstrapBehaviour { thespis, mdns })
+            Ok(BootstrapBehaviour { piying, mdns })
         })?
         .build();
 
-    swarm.behaviour().thespis.try_init_global()?;
+    swarm.behaviour().piying.try_init_global()?;
 
     swarm.listen_on(addr.parse()?)?;
 
@@ -325,7 +325,7 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 
 /// Run a pre-built libp2p swarm as the actor swarm event loop.
 ///
-/// This is the most flexible way to use thespis's remote actors with custom
+/// This is the most flexible way to use piying's remote actors with custom
 /// transports. You build the `Swarm` yourself (with any transport, encryption,
 /// and multiplexing) and include [`Behaviour`] in your composed `NetworkBehaviour`.
 ///
@@ -333,18 +333,18 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 ///
 /// Before calling this function, you must:
 /// 1. Build a `Swarm` containing [`Behaviour`] in its `NetworkBehaviour`
-/// 2. Call [`Behaviour::try_init_global()`] on the thespis behaviour
+/// 2. Call [`Behaviour::try_init_global()`] on the piying behaviour
 /// 3. Call `swarm.listen_on(addr)` if you want the swarm to accept connections
 ///
 /// # Example
 ///
 /// ```ignore
-/// use thespis::remote::{self, codec::ThespisRkyvCodec};
+/// use piying::remote::{self, codec::PiyingRkyvCodec};
 /// use libp2p::{swarm::NetworkBehaviour, noise, tcp, yamux};
 ///
 /// #[derive(NetworkBehaviour)]
 /// struct MyBehaviour {
-///     thespis: remote::Behaviour<ThespisRkyvCodec>,
+///     piying: remote::Behaviour<PiyingRkyvCodec>,
 /// }
 ///
 /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
@@ -354,14 +354,14 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
 ///     .with_behaviour(|key| {
 ///         let peer_id = key.public().to_peer_id();
 ///         let config = remote::messaging::Config::default();
-///         let codec = ThespisRkyvCodec::new(&config);
+///         let codec = PiyingRkyvCodec::new(&config);
 ///         Ok(MyBehaviour {
-///             thespis: remote::Behaviour::with_codec(peer_id, config, codec),
+///             piying: remote::Behaviour::with_codec(peer_id, config, codec),
 ///         })
 ///     })?
 ///     .build();
 ///
-/// swarm.behaviour().thespis.try_init_global()?;
+/// swarm.behaviour().piying.try_init_global()?;
 /// swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse()?)?;
 ///
 /// let peer_id = remote::run_swarm(swarm);

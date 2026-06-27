@@ -6,8 +6,8 @@
 //! to every protocol id returned, so two co-running test sessions cannot
 //! cross-discover via mDNS / KAD even on the same UDP port.
 //!
-//! Used inside thespis to namespace `/thespis/registry/1.0.0` and
-//! `/thespis/messaging/1.0.0`. Downstream crates (e.g. `thespan`) re-export
+//! Used inside piying to namespace `/piying/registry/1.0.0` and
+//! `/piying/messaging/1.0.0`. Downstream crates (e.g. `thespan`) re-export
 //! the same helper to namespace their own protocol identifiers and gossipsub
 //! topics with the same suffix, so all wire identifiers stay aligned.
 
@@ -56,9 +56,9 @@ mod tests {
         // returns *some* suffixed id, which is enough to prove the feature
         // is active.
         unsafe { std::env::set_var("THESPAN_SESSION_ID", "test-isolated-42") };
-        let out = applied_protocol("/thespis/messaging/1.0.0");
+        let out = applied_protocol("/piying/messaging/1.0.0");
         assert!(
-            out.starts_with("/thespis/messaging/1.0.0/"),
+            out.starts_with("/piying/messaging/1.0.0/"),
             "expected suffixed protocol id, got {out:?}",
         );
     }
@@ -69,7 +69,7 @@ mod tests {
     #[test]
     fn applied_protocol_is_pass_through_without_feature() {
         unsafe { std::env::set_var("THESPAN_SESSION_ID", "ignored-when-feature-off") };
-        let out = applied_protocol("/thespis/messaging/1.0.0");
-        assert_eq!(out, "/thespis/messaging/1.0.0");
+        let out = applied_protocol("/piying/messaging/1.0.0");
+        assert_eq!(out, "/piying/messaging/1.0.0");
     }
 }

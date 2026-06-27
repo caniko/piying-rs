@@ -329,10 +329,10 @@ impl Messages {
 
                 quote_spanned! {sig.span()=>
                     #[automatically_derived]
-                    impl #impl_generics ::thespis::message::#trait_name<#msg_ident #msg_ty_generics> for #actor_ident #actor_ty_generics #where_clause {
+                    impl #impl_generics ::piying::message::#trait_name<#msg_ident #msg_ty_generics> for #actor_ident #actor_ty_generics #where_clause {
                         type Reply = #reply;
 
-                        async fn handle(#self_ref, #[allow(unused_variables)] #msg, #ctx_ident: &mut ::thespis::message::Context<Self, Self::Reply>) -> Self::Reply {
+                        async fn handle(#self_ref, #[allow(unused_variables)] #msg, #ctx_ident: &mut ::piying::message::Context<Self, Self::Reply>) -> Self::Reply {
                             self.#fn_ident(#( #params ),*) #await_tokens
                         }
                     }

@@ -1,6 +1,6 @@
-//! Messaging infrastructure for actor communication in Thespis.
+//! Messaging infrastructure for actor communication in Piying.
 //!
-//! This module provides the constructs necessary for handling messages within Thespis,
+//! This module provides the constructs necessary for handling messages within Piying,
 //! defining how actors communicate and interact. It equips actors with the ability to receive and respond
 //! to both commands that might change their internal state and requests for information which do not alter their state.
 //!
@@ -122,10 +122,10 @@ where
     /// - The [ReplySender], if not `None`, should be used by the delegated responder to send the actual reply.
     ///
     /// ```
-    /// use thespis::message::{Context, Message};
-    /// use thespis::reply::DelegatedReply;
+    /// use piying::message::{Context, Message};
+    /// use piying::reply::DelegatedReply;
     ///
-    /// # #[derive(thespis::Actor)]
+    /// # #[derive(piying::Actor)]
     /// # struct MyActor;
     /// #
     /// struct Msg;
@@ -182,7 +182,7 @@ where
     /// # Example
     ///
     /// ```rust
-    /// use thespis::prelude::*;
+    /// use piying::prelude::*;
     ///
     /// #[derive(Actor)]
     /// struct MyActor;

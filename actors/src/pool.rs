@@ -17,8 +17,8 @@
 //! # Example
 //!
 //! ```
-//! use thespis::prelude::*;
-//! use thespis_actors::pool::{ActorPool, Broadcast, Dispatch};
+//! use piying::prelude::*;
+//! use piying_actors::pool::{ActorPool, Broadcast, Dispatch};
 //!
 //! #[derive(Actor)]
 //! struct MyWorker;
@@ -49,7 +49,7 @@ use futures::{
     Future, FutureExt, TryFutureExt,
     future::{BoxFuture, join_all},
 };
-use thespis::{error::Infallible, prelude::*};
+use piying::{error::Infallible, prelude::*};
 
 enum Factory<A: Actor> {
     Sync(Box<dyn FnMut() -> ActorRef<A> + Send + Sync + 'static>),

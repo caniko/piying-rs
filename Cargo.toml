@@ -3,7 +3,7 @@ resolver = "2"
 members = [".", "actors", "macros"]
 
 [workspace.dependencies]
-thespis = { path = ".", version = "0.19.2" }
+piying = { path = ".", version = "0.19.2" }
 
 futures = "0.3"
 tokio = "1.47"
@@ -17,13 +17,13 @@ codegen-units = 1
 all-features = true
 
 [package]
-name = "thespis"
+name = "piying"
 version = "0.19.2"
 edition = "2024"
 rust-version = "1.88.0"
 description = "Fault-tolerant Async Actors Built on Tokio"
 readme = "README.md"
-repository = "https://codeberg.org/caniko/rs-thespis"
+repository = "https://codeberg.org/caniko/rs-piying"
 license = "MIT OR Apache-2.0"
 keywords = ["actor", "tokio"]
 categories = ["asynchronous", "concurrency", "rust-patterns"]
@@ -31,7 +31,7 @@ include = ["/src", "/README.md"]
 
 [features]
 default = ["macros", "tracing"]
-macros = ["dep:thespis_macros"]
+macros = ["dep:piying_macros"]
 remote = [
   "dep:async-trait",
   "dep:const-fnv1a-hash",
@@ -48,14 +48,14 @@ serde-codec = ["serde", "dep:rmp-serde", "libp2p?/cbor"]
 tracing = ["dep:tracing", "tokio/tracing"]
 metrics = ["dep:metrics"]
 hotpath = ["dep:hotpath", "hotpath/hotpath"]
-# Test-only: when enabled, every libp2p protocol id thespis advertises is
+# Test-only: when enabled, every libp2p protocol id piying advertises is
 # suffixed with the value of `THESPAN_SESSION_ID` (if set) so two co-running
 # test sessions can't cross-discover through shared KAD protocol ids. Production builds leave
 # this off and the code is byte-identical to the unsuffixed path.
 session-isolation = []
 
 [dependencies]
-thespis_macros = { version = "0.19.0", path = "./macros", optional = true }
+piying_macros = { version = "0.19.0", path = "./macros", optional = true }
 
 async-trait = { version = "0.1", optional = true }
 const-fnv1a-hash = { version = "1.1.0", optional = true }
@@ -92,7 +92,7 @@ tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
 tracing = { version = "0.1", optional = true }
 
 [dev-dependencies]
-thespis_actors = { path = "actors" }
+piying_actors = { path = "actors" }
 tokio = { version = "1", features = [
   "macros",
   "rt",

@@ -57,14 +57,14 @@ use crate::{
     error::RegistryError,
 };
 
-/// Protocol id for thespis registry. With the `session-isolation` feature on
+/// Protocol id for piying registry. With the `session-isolation` feature on
 /// and `THESPAN_SESSION_ID` set, the id is suffixed at first access; otherwise
-/// it stays equal to `/thespis/registry/1.0.0` and is byte-identical to a
+/// it stays equal to `/piying/registry/1.0.0` and is byte-identical to a
 /// `const StreamProtocol::new`. Cheap to clone (`StreamProtocol` is `Cow`).
 fn proto_name() -> StreamProtocol {
     use std::sync::LazyLock;
     static NAME: LazyLock<StreamProtocol> = LazyLock::new(|| {
-        StreamProtocol::try_from_owned(super::session::applied_protocol("/thespis/registry/1.0.0"))
+        StreamProtocol::try_from_owned(super::session::applied_protocol("/piying/registry/1.0.0"))
             .expect("registry protocol id must start with '/'")
     });
     NAME.clone()

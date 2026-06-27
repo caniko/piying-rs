@@ -1,4 +1,4 @@
-/// `Behaviour` is a `NetworkBehaviour` that implements the thespis registry behaviour
+/// `Behaviour` is a `NetworkBehaviour` that implements the piying registry behaviour
 /// on top of the Kademlia protocol.
 #[allow(missing_debug_implementations)]
 pub struct Behaviour {

@@ -7,8 +7,8 @@ where
     /// # Example
     ///
     /// ```
-    /// # use thespis::Actor;
-    /// # use thespis::actor::Spawn;
+    /// # use piying::Actor;
+    /// # use piying::actor::Spawn;
     /// #
     /// # #[derive(Actor)]
     /// # struct MyActor;
@@ -58,8 +58,8 @@ where
     /// ```
     /// use std::thread;
     ///
-    /// # use thespis::Actor;
-    /// # use thespis::actor::Spawn;
+    /// # use piying::Actor;
+    /// # use piying::actor::Spawn;
     /// #
     /// # #[derive(Actor)]
     /// # struct MyActor;
@@ -107,13 +107,13 @@ where
     /// # Example
     ///
     /// ```no_run
-    /// # use thespis::Actor;
-    /// # use thespis::actor::{RemoteActorRef, Spawn};
+    /// # use piying::Actor;
+    /// # use piying::actor::{RemoteActorRef, Spawn};
     /// #
-    /// # #[derive(Actor, thespis::RemoteActor)]
+    /// # #[derive(Actor, piying::RemoteActor)]
     /// # struct MyActor;
     /// #
-    /// # #[derive(Actor, thespis::RemoteActor)]
+    /// # #[derive(Actor, piying::RemoteActor)]
     /// # struct OtherActor;
     /// #
     /// # tokio_test::block_on(async {
@@ -158,8 +158,8 @@ where
     /// # Example
     ///
     /// ```
-    /// # use thespis::Actor;
-    /// # use thespis::actor::Spawn;
+    /// # use piying::Actor;
+    /// # use piying::actor::Spawn;
     /// #
     /// # #[derive(Actor)]
     /// # struct MyActor;
@@ -204,8 +204,8 @@ where
     /// ```
     /// # use std::thread;
     /// #
-    /// # use thespis::Actor;
-    /// # use thespis::actor::Spawn;
+    /// # use piying::Actor;
+    /// # use piying::actor::Spawn;
     /// #
     /// # #[derive(Actor)]
     /// # struct MyActor;
@@ -248,13 +248,13 @@ where
     /// # Example
     ///
     /// ```
-    /// # use thespis::Actor;
-    /// # use thespis::actor::{RemoteActorRef, Spawn};
+    /// # use piying::Actor;
+    /// # use piying::actor::{RemoteActorRef, Spawn};
     /// #
-    /// # #[derive(Actor, thespis::RemoteActor)]
+    /// # #[derive(Actor, piying::RemoteActor)]
     /// # struct MyActor;
     /// #
-    /// # #[derive(Actor, thespis::RemoteActor)]
+    /// # #[derive(Actor, piying::RemoteActor)]
     /// # struct OtherActor;
     /// #
     /// # tokio_test::block_on(async {

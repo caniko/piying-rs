@@ -14,9 +14,9 @@
 //! # Example
 //!
 //! ```
-//! use thespis::prelude::*;
-//! use thespis_actors::message_bus::{MessageBus, Register, Publish};
-//! use thespis_actors::DeliveryStrategy;
+//! use piying::prelude::*;
+//! use piying_actors::message_bus::{MessageBus, Register, Publish};
+//! use piying_actors::DeliveryStrategy;
 //!
 //! #[derive(Clone)]
 //! struct TemperatureUpdate(f32);
@@ -53,7 +53,7 @@ use std::{
     marker::PhantomData,
 };
 
-use thespis::prelude::*;
+use piying::prelude::*;
 
 use crate::DeliveryStrategy;
 

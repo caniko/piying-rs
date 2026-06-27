@@ -1,4 +1,4 @@
-//! Core functionality for defining and managing actors in Thespis.
+//! Core functionality for defining and managing actors in Piying.
 //!
 //! Actors are independent units of computation that run asynchronously, sending and receiving messages.
 //! Each actor operates within its own task, and its lifecycle is managed by hooks such as `on_start`, `on_panic`, and `on_stop`.

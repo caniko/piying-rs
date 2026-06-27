@@ -1,6 +1,6 @@
 /// An infallible error type, similar to [std::convert::Infallible].
 ///
-/// Thespis provides its own Infallible type in order to implement Serialize/Deserialize for it.
+/// Piying provides its own Infallible type in order to implement Serialize/Deserialize for it.
 #[derive(Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Infallible {}
@@ -72,4 +72,3 @@ impl crate::remote::codec::Decode for Infallible {
         ))
     }
 }
-

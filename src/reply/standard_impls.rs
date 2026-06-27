@@ -68,7 +68,7 @@ macro_rules! impl_infallible_reply {
 }
 
 impl_infallible_reply!([
-    // Thespis types
+    // Piying types
     ActorId,
     {A: Actor} ActorRef<A>,
     {A: Actor} PreparedActor<A>,
@@ -209,4 +209,3 @@ impl_infallible_reply!([AtomicI16, AtomicU16]);
 impl_infallible_reply!([AtomicI32, AtomicU32]);
 #[cfg(target_has_atomic = "64")]
 impl_infallible_reply!([AtomicI64, AtomicU64]);
-

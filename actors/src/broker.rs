@@ -16,9 +16,9 @@
 //! ```
 //! use std::time::Duration;
 //!
-//! use thespis::prelude::*;
-//! use thespis_actors::broker::{Broker, Subscribe, Publish};
-//! use thespis_actors::DeliveryStrategy;
+//! use piying::prelude::*;
+//! use piying_actors::broker::{Broker, Subscribe, Publish};
+//! use piying_actors::DeliveryStrategy;
 //! use glob::Pattern;
 //!
 //! #[derive(Actor, Clone)]
@@ -59,7 +59,7 @@
 use std::collections::HashMap;
 
 use glob::{MatchOptions, Pattern};
-use thespis::prelude::*;
+use piying::prelude::*;
 
 use crate::DeliveryStrategy;
 

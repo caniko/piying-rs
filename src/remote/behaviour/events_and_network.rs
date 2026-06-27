@@ -7,7 +7,7 @@
 /// # Example
 ///
 /// ```no_run
-/// use thespis::remote;
+/// use piying::remote;
 /// use libp2p::swarm::SwarmEvent;
 /// #
 /// # let swarm_event: SwarmEvent<remote::Event> = todo!();
