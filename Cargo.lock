@@ -2373,7 +2373,7 @@ dependencies = [
 
 [[package]]
 name = "piying_actors"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "futures",
  "glob",
@@ -2385,7 +2385,7 @@ dependencies = [
 
 [[package]]
 name = "piying_macros"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "heck",
  "proc-macro2",
