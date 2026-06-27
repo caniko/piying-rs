@@ -258,4 +258,14 @@ impl<M, E> From<Elapsed> for SendError<M, E> {
     }
 }
 
-impl<M, E> error::Error for SendError<M, E> where E: fmt::Debug + fmt::Display {}
+impl<M, E> error::Error for SendError<M, E>
+where
+    E: error::Error + 'static,
+{
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match *self {
+            Self::HandlerError(ref error) => Some(error),
+            _ => None,
+        }
+    }
+}
