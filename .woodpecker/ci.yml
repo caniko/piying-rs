@@ -38,10 +38,10 @@ steps:
   - name: test-minimal
     image: *rust_image
     commands:
-      - cargo test -p thespis --no-default-features
-      - cargo test -p thespis --no-default-features --features macros
-      - cargo test -p thespis_actors
-      - cargo test -p thespis_macros
+      - cargo test -p piying --no-default-features
+      - cargo test -p piying --no-default-features --features macros
+      - cargo test -p piying_actors
+      - cargo test -p piying_macros
     depends_on: [fmt]
 
   - name: build-tokio-unstable

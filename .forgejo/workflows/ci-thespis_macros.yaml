@@ -29,10 +29,10 @@ jobs:
           key: cargo-bin-${{ runner.os }}-${{ hashFiles('.forgejo/workflows/*.yaml') }}
 
       - name: Test all features
-        run: cargo test -p thespis_macros --all-features
+        run: cargo test -p piying_macros --all-features
 
       - name: Clippy all features
-        run: cargo clippy -p thespis_macros --all-targets --all-features -- --deny warnings
+        run: cargo clippy -p piying_macros --all-targets --all-features -- --deny warnings
 
       - name: Package crate
-        run: cargo package -p thespis_macros --allow-dirty
+        run: cargo package -p piying_macros --allow-dirty

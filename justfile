@@ -1,4 +1,4 @@
-# Thespis — convenience commands for local development
+# Piying — convenience commands for local development
 
 # Run all tests (both codec backends)
 test: test-serde test-rkyv
@@ -13,10 +13,10 @@ test-rkyv:
 
 # Test minimal feature set (no remote)
 test-minimal:
-    cargo test -p thespis --no-default-features
-    cargo test -p thespis --no-default-features --features macros
-    cargo test -p thespis_actors
-    cargo test -p thespis_macros
+    cargo test -p piying --no-default-features
+    cargo test -p piying --no-default-features --features macros
+    cargo test -p piying_actors
+    cargo test -p piying_macros
 
 # Clippy all feature combos
 lint: lint-serde lint-rkyv

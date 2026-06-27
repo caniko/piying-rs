@@ -50,7 +50,7 @@ jobs:
           fi
 
           # cargo pkgid scopes the version lookup to the crate this workflow publishes.
-          version="$(cargo pkgid -p thespis_actors | awk -F'[#@]' '{print $NF}')"
+          version="$(cargo pkgid -p piying_actors | awk -F'[#@]' '{print $NF}')"
           if [ -z "$version" ]; then
             echo "Could not read package version from cargo pkgid" >&2
             exit 1
@@ -79,20 +79,20 @@ jobs:
           git verify-tag "$tag"
 
       - name: Test all features
-        run: cargo test -p thespis_actors --all-features
+        run: cargo test -p piying_actors --all-features
 
       - name: Clippy all features
-        run: cargo clippy -p thespis_actors --all-targets --all-features -- --deny warnings
+        run: cargo clippy -p piying_actors --all-targets --all-features -- --deny warnings
 
       - name: Dry-run publish
-        run: cargo publish -p thespis_actors --dry-run
+        run: cargo publish -p piying_actors --dry-run
 
       - name: Publish
         env:
           CRATES_IO_API_TOKEN: ${{ secrets.CRATES_IO_API_TOKEN }}
         run: |
           set -euo pipefail
-          crate_name='thespis_actors'
+          crate_name='piying_actors'
           version="${GITHUB_REF_NAME:-${FORGE_REF_NAME:-${CODEBERG_REF_NAME:-}}}"
           if [ -z "$version" ]; then
             ref="${GITHUB_REF:-${FORGE_REF:-${CODEBERG_REF:-}}}"
@@ -131,4 +131,4 @@ jobs:
             exit 1
           fi
           export CARGO_REGISTRY_TOKEN="${CARGO_REGISTRY_TOKEN:-$CRATES_IO_API_TOKEN}"
-          cargo publish -p thespis_actors
+          cargo publish -p piying_actors
