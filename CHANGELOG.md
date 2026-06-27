@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-27
+
+### Fixed
+
+- Made `serde-codec` and `rkyv-codec` features compatible under `--all-features`
+  by giving rkyv priority when both are enabled. Serde's blanket impls and
+  default-codec constructors are gated on `serde-codec` without `rkyv-codec`.
+
 ## [0.1.0] - 2026-06-27
 
 ### Added
@@ -31,4 +39,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Typo in `pubsub.rs` doc comment ("bessage" → "message").
 - Typo in `trait_def.rs` doc comment ("unwraped" → "unwrapped").
 
+[0.1.1]: https://codeberg.org/caniko/rs-piying/releases/tag/0.1.1
 [0.1.0]: https://codeberg.org/caniko/rs-piying/releases/tag/0.1.0
