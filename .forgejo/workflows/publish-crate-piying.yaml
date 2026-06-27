@@ -75,7 +75,9 @@ jobs:
           trap 'rm -rf "$GNUPGHOME"' EXIT
           chmod 700 "$GNUPGHOME"
           gpg --batch --import keys/maintainers.gpg
-          git fetch --force --tags origin "refs/tags/${tag}:refs/tags/${tag}"
+          # actions/checkout uses HTTPS with token; ensure git fetch works
+          repo="${GITHUB_REPOSITORY:-${FORGE_REPO:-${CODEBERG_REPO:-caniko/rs-piying}}}"
+          git fetch --force --tags "https://git:${GITHUB_TOKEN}@codeberg.org/${repo}" "refs/tags/${tag}:refs/tags/${tag}"
           git verify-tag "$tag"
 
       - name: Test all features
