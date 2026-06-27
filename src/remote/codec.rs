@@ -413,15 +413,11 @@ mod rkyv_transport {
             let mut cursor = futures::io::Cursor::new(header);
             let config = VersionedFrameConfig::new(WIRE_MAGIC, WIRE_VERSION, 1024);
             assert!(
-                read_versioned_rkyv::<PiyingWireRequestEnvelope, _>(
-                    &mut cursor,
-                    config,
-                    "request"
-                )
-                .await
-                .unwrap_err()
-                .to_string()
-                .contains("bad magic")
+                read_versioned_rkyv::<PiyingWireRequestEnvelope, _>(&mut cursor, config, "request")
+                    .await
+                    .unwrap_err()
+                    .to_string()
+                    .contains("bad magic")
             );
         }
 
@@ -433,15 +429,11 @@ mod rkyv_transport {
             let mut cursor = futures::io::Cursor::new(header);
             let config = VersionedFrameConfig::new(WIRE_MAGIC, WIRE_VERSION, 1024);
             assert!(
-                read_versioned_rkyv::<PiyingWireRequestEnvelope, _>(
-                    &mut cursor,
-                    config,
-                    "request"
-                )
-                .await
-                .unwrap_err()
-                .to_string()
-                .contains("unsupported wire version")
+                read_versioned_rkyv::<PiyingWireRequestEnvelope, _>(&mut cursor, config, "request")
+                    .await
+                    .unwrap_err()
+                    .to_string()
+                    .contains("unsupported wire version")
             );
         }
     }

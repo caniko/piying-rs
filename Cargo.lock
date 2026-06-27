@@ -2357,7 +2357,6 @@ dependencies = [
  "futures",
  "hotpath",
  "libp2p",
- "libp2p-identity",
  "libp2p-rkyv-codec",
  "linkme",
  "metrics",

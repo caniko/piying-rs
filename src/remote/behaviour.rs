@@ -157,7 +157,7 @@ where
     ///
     /// Use this to propagate the sender explicitly to consumers that need
     /// to create [`RemoteActorRef`](crate::actor::RemoteActorRef) instances
-    /// without reading the global [`ActorSwarm`].
+    /// without reading the global `ActorSwarm`.
     pub fn swarm_sender(&self) -> SwarmSender {
         SwarmSender(self.cmd_tx.clone())
     }

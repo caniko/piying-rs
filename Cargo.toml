@@ -38,7 +38,6 @@ remote = [
   "dep:const-str",
   "dep:either",
   "dep:libp2p",
-  "dep:libp2p-identity",
   "dep:linkme",
 ]
 rkyv = ["dep:rkyv"]
@@ -70,6 +69,7 @@ hotpath = { version = "0.11", optional = true, features = ["tokio"] }
 libp2p = { version = "0.56.0", features = [
   "kad",
   "macros",
+  "mdns",
   "noise",
   "quic",
   "request-response",
@@ -78,7 +78,6 @@ libp2p = { version = "0.56.0", features = [
   "yamux",
   "mdns",
 ], optional = true }
-libp2p-identity = { version = "0.2.9", optional = true }
 linkme = { version = "0.3.28", optional = true }
 metrics = { version = "0.24.2", optional = true }
 # Keep this version-only for downstream users. Local co-development with the

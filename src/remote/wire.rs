@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-//! Serializable mirror types for [`SwarmRequest`] / [`SwarmResponse`] fields
+//! Serializable mirror types for `SwarmRequest` / `SwarmResponse` fields
 //! whose runtime representations contain non-serializable data (`PeerId`,
 //! `dyn ReplyError`, `CodecError`, `io::Error`).
 

@@ -9,7 +9,7 @@
 //!
 //! - **Composable Architecture**: The [`Behaviour`] struct implements libp2p's `NetworkBehaviour`,
 //!   allowing seamless integration with existing libp2p applications and other protocols.
-//! - **Quick Bootstrap**: The [`bootstrap()`] and [`bootstrap_on()`] functions provide one-line
+//! - **Quick Bootstrap**: The `bootstrap()` and `bootstrap_on()` functions provide one-line
 //!   setup for development and simple deployments.
 //! - **Custom Transport**: The [`run_swarm()`] function accepts a pre-built swarm with any
 //!   transport while handling the event loop for you.
@@ -389,7 +389,7 @@ where
 /// Useful for test isolation when multiple tests run in the same process
 /// and share the global registry. After clearing, any previously registered
 /// actors will no longer be found by incoming remote messages or
-/// [`RemoteActorRef::for_peer()`] lookups until they are re-registered.
+/// [`RemoteActorRef::for_peer()`](crate::actor::RemoteActorRef::for_peer) lookups until they are re-registered.
 pub async fn clear_registry() {
     REMOTE_REGISTRY.lock().await.clear();
 }

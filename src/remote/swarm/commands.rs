@@ -1,4 +1,4 @@
-/// RAII guard that clears the thread-local [`ActorSwarm`] on drop.
+/// RAII guard that clears the thread-local `ActorSwarm` on drop.
 ///
 /// Not `Send` — the guard must be dropped on the same thread that created it.
 #[derive(Debug)]

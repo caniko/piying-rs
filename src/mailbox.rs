@@ -3,6 +3,7 @@
 //! An actor mailbox is a channel which stores pending messages and signals for an actor to process sequentially.
 
 use std::{
+    collections::VecDeque,
     fmt,
     task::{Context, Poll},
     time::Duration,
@@ -41,6 +42,7 @@ pub fn bounded<A: Actor>(buffer: usize) -> (MailboxSender<A>, MailboxReceiver<A>
         },
         MailboxReceiver {
             inner: MailboxReceiverInner::Bounded(rx),
+            front: VecDeque::new(),
             #[cfg(feature = "metrics")]
             messages_received: metrics::counter!("piying_messages_received", "actor_name" => A::name()),
             #[cfg(feature = "metrics")]
@@ -72,6 +74,7 @@ pub fn unbounded<A: Actor>() -> (MailboxSender<A>, MailboxReceiver<A>) {
         },
         MailboxReceiver {
             inner: MailboxReceiverInner::Unbounded(rx),
+            front: VecDeque::new(),
             #[cfg(feature = "metrics")]
             messages_received: metrics::counter!("piying_messages_received", "actor_name" => A::name()),
             #[cfg(feature = "metrics")]
@@ -140,6 +143,7 @@ impl<A: Actor> MailboxSender<A> {
     ///
     /// [`mpsc::Sender::send`]: tokio::sync::mpsc::Sender::send
     /// [`mpsc::UnboundedSender::send`]: tokio::sync::mpsc::UnboundedSender::send
+    #[allow(clippy::result_large_err)]
     pub async fn send(&self, signal: Signal<A>) -> Result<(), mpsc::error::SendError<Signal<A>>> {
         #[cfg(feature = "metrics")]
         let signal_kind = SignalKind::from(&signal);
@@ -191,6 +195,7 @@ impl<A: Actor> MailboxSender<A> {
     ///
     /// [`mpsc::Sender::try_send`]: tokio::sync::mpsc::Sender::try_send
     /// [`mpsc::UnboundedSender::send`]: tokio::sync::mpsc::UnboundedSender::send
+    #[allow(clippy::result_large_err)]
     pub async fn send_timeout(
         &self,
         signal: Signal<A>,
