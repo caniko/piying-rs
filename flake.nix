@@ -2,9 +2,10 @@
   description = "Rust project";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    rust-overlay.url = "github:oxalica/rust-overlay";
-    crane.url = "github:ipetkov/crane";
+    rs-harbor.url = "git+https://codeberg.org/caniko/rs-harbor.git?ref=trunk&rev=9bfa8bdb0ecb22d7bc11448665f7fbaebae7a759";
+    nixpkgs.follows = "rs-harbor/nixpkgs";
+    rust-overlay.follows = "rs-harbor/rust-overlay";
+    crane.follows = "rs-harbor/crane";
     flake-utils.url = "github:numtide/flake-utils";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     git-hooks.url = "github:cachix/git-hooks.nix";
@@ -18,6 +19,7 @@
     flake-utils,
     treefmt-nix,
     git-hooks,
+    rs-harbor,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (system: let
@@ -26,10 +28,19 @@
         overlays = [(import rust-overlay)];
       };
 
-      rustToolchain = pkgs.rust-bin.stable.latest.default.override {
-        extensions = ["rustfmt" "clippy"];
+      toolchain = rs-harbor.lib.mkToolchain {
+        inherit pkgs;
+        channel = "stable";
+        extensions = ["rustfmt" "clippy" "rust-src"];
       };
-      craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+      inherit (toolchain) rustToolchain craneLib;
+      buildCache = rs-harbor.lib.mkBuildCachePolicy {
+        inherit pkgs;
+        sccachePackage = rs-harbor.packages.${system}.sccache;
+        cacheRoot = null;
+        namespaceScope = "canix-rust";
+        namespaceGeneration = 5;
+      };
       src = pkgs.lib.cleanSourceWith {
         src = ./.;
         filter = path: type:
@@ -40,8 +51,8 @@
         inherit src;
         strictDeps = true;
       };
-      cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-      package = craneLib.buildPackage (commonArgs // {inherit cargoArtifacts;});
+      cargoArtifacts = buildCache.withRustCache {package = craneLib.buildDepsOnly commonArgs;};
+      package = buildCache.withRustCache {package = craneLib.buildPackage (commonArgs // {inherit cargoArtifacts;});};
       treefmtEval = treefmt-nix.lib.evalModule pkgs (import ./nix/treefmt.nix);
       pre-commit-check = git-hooks.lib.${system}.run {
         src = ./.;
