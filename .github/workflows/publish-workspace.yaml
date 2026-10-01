@@ -45,9 +45,9 @@ jobs:
           validated_sha="$(git rev-list -n 1 "$tag")"
           test "$validated_sha" = "${GITHUB_SHA:?missing workflow event SHA}" || { echo "Signed tag commit does not match the workflow event SHA; refusing a moved tag" >&2; exit 1; }
           git checkout --detach "$validated_sha"
-          test "$(cargo pkgid -p piying_macros | awk -F'[#@]' 'NF > 1 {print $NF}' | tail -n 1)" = "$tag" || { echo "piying_macros 0.1.1 does not match tag $tag" >&2; exit 1; }
-          test "$(cargo pkgid -p piying | awk -F'[#@]' 'NF > 1 {print $NF}' | tail -n 1)" = "$tag" || { echo "piying 0.1.1 does not match tag $tag" >&2; exit 1; }
-          test "$(cargo pkgid -p piying_actors | awk -F'[#@]' 'NF > 1 {print $NF}' | tail -n 1)" = "$tag" || { echo "piying_actors 0.1.1 does not match tag $tag" >&2; exit 1; }
+          test "$(cargo pkgid -p piying_macros | awk -F'[#@]' 'NF > 1 {print $NF}' | tail -n 1)" = "$tag" || { echo "piying_macros 0.2.0 does not match tag $tag" >&2; exit 1; }
+          test "$(cargo pkgid -p piying | awk -F'[#@]' 'NF > 1 {print $NF}' | tail -n 1)" = "$tag" || { echo "piying 0.2.0 does not match tag $tag" >&2; exit 1; }
+          test "$(cargo pkgid -p piying_actors | awk -F'[#@]' 'NF > 1 {print $NF}' | tail -n 1)" = "$tag" || { echo "piying_actors 0.2.0 does not match tag $tag" >&2; exit 1; }
   gate-release-audit:
     needs: [validate]
     runs-on: ubuntu-latest
