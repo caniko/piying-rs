@@ -258,4 +258,3 @@ impl ActorSwarm {
         &self.swarm_tx
     }
 }
-

@@ -1,12 +1,15 @@
 ---
 name: update-piying-from-kameo
-description: Keep vendor/piying informed by upstream Kameo changes, analyze whether Piying benefits from them, and track the last inspected upstream commit hash.
+description: Keep Piying informed by upstream Kameo changes, analyze whether Piying benefits from them, and track the last inspected upstream commit hash.
 user-invocable: "true"
 ---
 
 # Update Piying from Kameo
 
-Use this skill when asked to check, review, or sync upstream Kameo changes into the Piying fork in `vendor/piying`.
+Use this skill when asked to check, review, or sync upstream Kameo changes into the Piying fork.
+Resolve the checkout first: use the repository root when its Cargo package is
+`piying`, or `vendor/piying` when invoked from a consuming repository.
+Use that checkout as `piying_dir` in the commands below.
 
 Piying is a fork of Kameo. Kameo is an upstream signal, not an authority to merge blindly. Default behavior is **analyze first**: produce an impact report before proposing or applying code changes.
 
@@ -24,16 +27,16 @@ Checkpoint policy: each run reviews upstream Kameo changes from the recorded `la
 
 ### 1. Verify Facts First
 
-- Check `vendor/piying` worktree state before doing anything else:
+- Check the resolved Piying worktree state before doing anything else:
   ```bash
-  git -C vendor/piying status --short
+  git -C "$piying_dir" status --short
   ```
-- Do not overwrite or revert dirty work in `vendor/piying`.
+- Do not overwrite or revert dirty work in the resolved checkout.
 - Query upstream Kameo HEAD:
   ```bash
   git ls-remote https://github.com/tqwewe/kameo.git HEAD
   ```
-- Use a local cache outside this repo for upstream inspection, such as `/tmp/kameo-upstream`.
+- Use a local cache outside this repo for upstream inspection, such as `/tmp/opencode/kameo-upstream`.
 - If the cache does not exist, clone it. If it exists, fetch it.
 
 ### 2. Choose the Commit Range
@@ -94,7 +97,7 @@ test -f .agents/skills/update-piying-from-kameo/state.toml
 rg -n "https://github.com/tqwewe/kameo.git|2026-03-09T00:00:00Z|checkpoint|analyze first|last_inspected_commit" .agents/skills/update-piying-from-kameo
 ```
 
-After code changes in `vendor/piying`, run from `vendor/piying`:
+After code changes, run from the resolved Piying checkout:
 
 ```bash
 cargo test -p piying

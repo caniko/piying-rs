@@ -5,6 +5,10 @@
 use std::{
     collections::VecDeque,
     fmt,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
     task::{Context, Poll},
     time::Duration,
 };
@@ -31,25 +35,8 @@ pub fn bounded<A: Actor>(buffer: usize) -> (MailboxSender<A>, MailboxReceiver<A>
     #[cfg(feature = "hotpath")]
     let (tx, rx) = hotpath::channel!((tx, rx), label = A::name());
     (
-        MailboxSender {
-            inner: MailboxSenderInner::Bounded(tx),
-            #[cfg(feature = "metrics")]
-            messages_sent: metrics::counter!("piying_messages_sent", "actor_name" => A::name()),
-            #[cfg(feature = "metrics")]
-            lifecycle_signals_sent: metrics::counter!("piying_lifecycle_sent", "actor_name" => A::name()),
-            #[cfg(feature = "metrics")]
-            link_died_signals_sent: metrics::counter!("piying_link_died_sent", "actor_name" => A::name()),
-        },
-        MailboxReceiver {
-            inner: MailboxReceiverInner::Bounded(rx),
-            front: VecDeque::new(),
-            #[cfg(feature = "metrics")]
-            messages_received: metrics::counter!("piying_messages_received", "actor_name" => A::name()),
-            #[cfg(feature = "metrics")]
-            lifecycle_signals_received: metrics::counter!("piying_lifecycle_received", "actor_name" => A::name()),
-            #[cfg(feature = "metrics")]
-            link_died_signals_received: metrics::counter!("piying_link_died_received", "actor_name" => A::name()),
-        },
+        MailboxSender::new(MailboxSenderInner::Bounded(tx)),
+        MailboxReceiver::new(MailboxReceiverInner::Bounded(rx)),
     )
 }
 
@@ -63,25 +50,8 @@ pub fn unbounded<A: Actor>() -> (MailboxSender<A>, MailboxReceiver<A>) {
     #[cfg(feature = "hotpath")]
     let (tx, rx) = hotpath::channel!((tx, rx), label = A::name());
     (
-        MailboxSender {
-            inner: MailboxSenderInner::Unbounded(tx),
-            #[cfg(feature = "metrics")]
-            messages_sent: metrics::counter!("piying_messages_sent", "actor_name" => A::name()),
-            #[cfg(feature = "metrics")]
-            lifecycle_signals_sent: metrics::counter!("piying_lifecycle_sent", "actor_name" => A::name()),
-            #[cfg(feature = "metrics")]
-            link_died_signals_sent: metrics::counter!("piying_link_died_sent", "actor_name" => A::name()),
-        },
-        MailboxReceiver {
-            inner: MailboxReceiverInner::Unbounded(rx),
-            front: VecDeque::new(),
-            #[cfg(feature = "metrics")]
-            messages_received: metrics::counter!("piying_messages_received", "actor_name" => A::name()),
-            #[cfg(feature = "metrics")]
-            lifecycle_signals_received: metrics::counter!("piying_lifecycle_received", "actor_name" => A::name()),
-            #[cfg(feature = "metrics")]
-            link_died_signals_received: metrics::counter!("piying_link_died_received", "actor_name" => A::name()),
-        },
+        MailboxSender::new(MailboxSenderInner::Unbounded(tx)),
+        MailboxReceiver::new(MailboxReceiverInner::Unbounded(rx)),
     )
 }
 
@@ -90,6 +60,13 @@ pub fn unbounded<A: Actor>() -> (MailboxSender<A>, MailboxReceiver<A>) {
 /// Instances are created by the [`bounded`] and [`unbounded`] functions.
 pub struct MailboxSender<A: Actor> {
     inner: MailboxSenderInner<A>,
+    state: MailboxSenderState,
+}
+
+#[derive(Clone)]
+struct MailboxSenderState {
+    // Shared across strong/weak handles; lifecycle signals still pass during graceful shutdown.
+    accepting: Arc<AtomicBool>,
     #[cfg(feature = "metrics")]
     messages_sent: metrics::Counter,
     #[cfg(feature = "metrics")]
@@ -117,9 +94,9 @@ impl SignalKind {
     #[inline]
     fn apply_metric<A: Actor>(self, tx: &MailboxSender<A>) {
         match self {
-            SignalKind::Message => tx.messages_sent.increment(1),
-            SignalKind::Lifecycle => tx.lifecycle_signals_sent.increment(1),
-            SignalKind::LinkDied => tx.link_died_signals_sent.increment(1),
+            SignalKind::Message => tx.state.messages_sent.increment(1),
+            SignalKind::Lifecycle => tx.state.lifecycle_signals_sent.increment(1),
+            SignalKind::LinkDied => tx.state.link_died_signals_sent.increment(1),
         }
     }
 }
@@ -137,6 +114,21 @@ impl<A: Actor> From<&Signal<A>> for SignalKind {
 }
 
 impl<A: Actor> MailboxSender<A> {
+    fn new(inner: MailboxSenderInner<A>) -> Self {
+        Self {
+            inner,
+            state: MailboxSenderState {
+                accepting: Arc::new(AtomicBool::new(true)),
+                #[cfg(feature = "metrics")]
+                messages_sent: metrics::counter!("piying_messages_sent", "actor_name" => A::name()),
+                #[cfg(feature = "metrics")]
+                lifecycle_signals_sent: metrics::counter!("piying_lifecycle_sent", "actor_name" => A::name()),
+                #[cfg(feature = "metrics")]
+                link_died_signals_sent: metrics::counter!("piying_link_died_sent", "actor_name" => A::name()),
+            },
+        }
+    }
+
     /// Sends a value, waiting until there is capacity.
     ///
     /// See tokio's [`mpsc::Sender::send`] and [`mpsc::UnboundedSender::send`] docs for more info.
@@ -145,6 +137,9 @@ impl<A: Actor> MailboxSender<A> {
     /// [`mpsc::UnboundedSender::send`]: tokio::sync::mpsc::UnboundedSender::send
     #[allow(clippy::result_large_err)]
     pub async fn send(&self, signal: Signal<A>) -> Result<(), mpsc::error::SendError<Signal<A>>> {
+        if !self.is_accepting() && matches!(signal, Signal::Message { .. }) {
+            return Err(mpsc::error::SendError(signal));
+        }
         #[cfg(feature = "metrics")]
         let signal_kind = SignalKind::from(&signal);
 
@@ -170,6 +165,9 @@ impl<A: Actor> MailboxSender<A> {
     /// [`mpsc::UnboundedSender::send`]: tokio::sync::mpsc::UnboundedSender::send
     #[allow(clippy::result_large_err)]
     pub fn try_send(&self, signal: Signal<A>) -> Result<(), mpsc::error::TrySendError<Signal<A>>> {
+        if !self.is_accepting() && matches!(signal, Signal::Message { .. }) {
+            return Err(mpsc::error::TrySendError::Closed(signal));
+        }
         #[cfg(feature = "metrics")]
         let signal_kind = SignalKind::from(&signal);
 
@@ -201,6 +199,9 @@ impl<A: Actor> MailboxSender<A> {
         signal: Signal<A>,
         timeout: Duration,
     ) -> Result<(), mpsc::error::SendTimeoutError<Signal<A>>> {
+        if !self.is_accepting() && matches!(signal, Signal::Message { .. }) {
+            return Err(mpsc::error::SendTimeoutError::Closed(signal));
+        }
         #[cfg(feature = "metrics")]
         let signal_kind = SignalKind::from(&signal);
 
@@ -231,6 +232,9 @@ impl<A: Actor> MailboxSender<A> {
         &self,
         signal: Signal<A>,
     ) -> Result<(), mpsc::error::SendError<Signal<A>>> {
+        if !self.is_accepting() && matches!(signal, Signal::Message { .. }) {
+            return Err(mpsc::error::SendError(signal));
+        }
         #[cfg(feature = "metrics")]
         let signal_kind = SignalKind::from(&signal);
 
@@ -275,6 +279,14 @@ impl<A: Actor> MailboxSender<A> {
         }
     }
 
+    pub(crate) fn is_accepting(&self) -> bool {
+        self.state.accepting.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn stop_accepting(&self) {
+        self.state.accepting.store(false, Ordering::Relaxed);
+    }
+
     /// Returns `true` if senders belong to the same channel.
     ///
     /// See tokio's [`mpsc::Sender::same_channel`] and [`mpsc::UnboundedSender::same_channel`] docs for more info.
@@ -315,25 +327,13 @@ impl<A: Actor> MailboxSender<A> {
     /// [`mpsc::Sender::downgrade`]: tokio::sync::mpsc::Sender::downgrade
     /// [`mpsc::UnboundedSender::downgrade`]: tokio::sync::mpsc::UnboundedSender::downgrade
     pub fn downgrade(&self) -> WeakMailboxSender<A> {
-        match &self.inner {
-            MailboxSenderInner::Bounded(tx) => WeakMailboxSender {
-                inner: WeakMailboxSenderInner::Bounded(tx.downgrade()),
-                #[cfg(feature = "metrics")]
-                messages_sent: self.messages_sent.clone(),
-                #[cfg(feature = "metrics")]
-                lifecycle_signals_sent: self.lifecycle_signals_sent.clone(),
-                #[cfg(feature = "metrics")]
-                link_died_signals_sent: self.link_died_signals_sent.clone(),
-            },
-            MailboxSenderInner::Unbounded(tx) => WeakMailboxSender {
-                inner: WeakMailboxSenderInner::Unbounded(tx.downgrade()),
-                #[cfg(feature = "metrics")]
-                messages_sent: self.messages_sent.clone(),
-                #[cfg(feature = "metrics")]
-                lifecycle_signals_sent: self.lifecycle_signals_sent.clone(),
-                #[cfg(feature = "metrics")]
-                link_died_signals_sent: self.link_died_signals_sent.clone(),
-            },
+        let inner = match &self.inner {
+            MailboxSenderInner::Bounded(tx) => WeakMailboxSenderInner::Bounded(tx.downgrade()),
+            MailboxSenderInner::Unbounded(tx) => WeakMailboxSenderInner::Unbounded(tx.downgrade()),
+        };
+        WeakMailboxSender {
+            inner,
+            state: self.state.clone(),
         }
     }
 
@@ -366,25 +366,13 @@ impl<A: Actor> MailboxSender<A> {
 
 impl<A: Actor> Clone for MailboxSender<A> {
     fn clone(&self) -> Self {
-        match &self.inner {
-            MailboxSenderInner::Bounded(tx) => MailboxSender {
-                inner: MailboxSenderInner::Bounded(tx.clone()),
-                #[cfg(feature = "metrics")]
-                messages_sent: self.messages_sent.clone(),
-                #[cfg(feature = "metrics")]
-                lifecycle_signals_sent: self.lifecycle_signals_sent.clone(),
-                #[cfg(feature = "metrics")]
-                link_died_signals_sent: self.link_died_signals_sent.clone(),
-            },
-            MailboxSenderInner::Unbounded(tx) => MailboxSender {
-                inner: MailboxSenderInner::Unbounded(tx.clone()),
-                #[cfg(feature = "metrics")]
-                messages_sent: self.messages_sent.clone(),
-                #[cfg(feature = "metrics")]
-                lifecycle_signals_sent: self.lifecycle_signals_sent.clone(),
-                #[cfg(feature = "metrics")]
-                link_died_signals_sent: self.link_died_signals_sent.clone(),
-            },
+        let inner = match &self.inner {
+            MailboxSenderInner::Bounded(tx) => MailboxSenderInner::Bounded(tx.clone()),
+            MailboxSenderInner::Unbounded(tx) => MailboxSenderInner::Unbounded(tx.clone()),
+        };
+        Self {
+            inner,
+            state: self.state.clone(),
         }
     }
 }
@@ -401,3 +389,7 @@ impl<A: Actor> fmt::Debug for MailboxSender<A> {
 include!("mailbox/weak_sender.rs");
 include!("mailbox/receiver.rs");
 include!("mailbox/signal.rs");
+
+#[cfg(all(test, feature = "metrics"))]
+#[path = "mailbox/metrics_tests.rs"]
+mod metrics_tests;

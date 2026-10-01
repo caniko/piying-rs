@@ -7,6 +7,8 @@
     nixpkgs.follows = "harbor-rs/nixpkgs";
     rust-overlay.follows = "harbor-rs/rust-overlay";
     crane.follows = "harbor-rs/crane";
+    simit.url = "github:caniko/simit/0.19.0";
+    simit.flake = false;
     flake-utils.url = "github:numtide/flake-utils";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     git-hooks.url = "github:cachix/git-hooks.nix";
@@ -16,11 +18,11 @@
     self,
     nixpkgs,
     rust-overlay,
-    crane,
     flake-utils,
     treefmt-nix,
     git-hooks,
     harbor-rs,
+    simit,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (system: let
@@ -54,7 +56,18 @@
       };
       cargoArtifacts = buildCache.withRustCache {package = craneLib.buildDepsOnly commonArgs;};
       package = buildCache.withRustCache {package = craneLib.buildPackage (commonArgs // {inherit cargoArtifacts;});};
-      treefmtEval = treefmt-nix.lib.evalModule pkgs (import ./nix/treefmt.nix);
+      simitPackage = craneLib.buildPackage {
+        src = simit;
+        # Keep generated release workflows reproducible until Simit releases the
+        # event-SHA binding fix in its coordinated workspace publisher.
+        patches = [./nix/simit-release-event.patch];
+        doCheck = false;
+      };
+      treefmtEval = treefmt-nix.lib.evalModule pkgs (import ./nix/treefmt.nix {
+        rustfmtPackage = pkgs.rust-bin.nightly.latest.default.override {
+          extensions = ["rustfmt"];
+        };
+      });
       pre-commit-check = git-hooks.lib.${system}.run {
         src = ./.;
         hooks = import ./nix/pre-commit.nix {
@@ -82,11 +95,13 @@
           [
             cargo-audit
             cargo-nextest
+            just
             pre-commit
             rust-analyzer
           ]
+          ++ [simitPackage]
           ++ pre-commit-check.enabledPackages;
-        shellHook = pre-commit-check.shellHook;
+        inherit (pre-commit-check) shellHook;
       };
     });
 }

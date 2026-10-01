@@ -4,7 +4,7 @@ use std::{
     pin, task,
     time::Duration,
 };
-use tokio::sync::oneshot;
+use tokio::sync::{mpsc, oneshot};
 
 #[cfg(feature = "remote")]
 use crate::{actor, remote};
@@ -14,9 +14,9 @@ use remote::codec::Decode as _;
 use crate::{
     Actor, Reply,
     actor::{ActorRef, ReplyRecipient},
-    error::{self, SendError},
+    error::{self, BoxSendError, SendError},
     mailbox::Signal,
-    message::Message,
+    message::{BoxReply, Message},
     reply::{ReplyError, ReplySender},
 };
 

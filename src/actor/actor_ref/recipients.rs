@@ -326,4 +326,3 @@ impl<M: Send + 'static> Hash for Recipient<M> {
         self.handler.id().hash(state);
     }
 }
-

@@ -1,7 +1,9 @@
 # Piying
 
 <!-- simit:badges:start -->
-![CI](https://img.shields.io/badge/CI-managed-2088ff) [![Nix](https://img.shields.io/badge/Nix-managed-5277c3)](flake.nix) [![crates.io](https://img.shields.io/badge/crates.io-ready-f46623)](https://crates.io/crates/piying)
+
+[![CI](https://img.shields.io/badge/CI-managed-2088ff)](.github/workflows/ci.yaml) [![Nix](https://img.shields.io/badge/Nix-managed-5277c3)](flake.nix) [![crates.io](https://img.shields.io/badge/crates.io-ready-f46623)](https://crates.io/crates/piying)
+
 <!-- simit:badges:end -->
 
 Fault-tolerant async actors built on Tokio.
@@ -19,6 +21,41 @@ Fault-tolerant async actors built on Tokio.
 - `PiyingRkyvCodec` for high-performance binary serialization via rkyv
 - Various networking and swarm improvements for production P2P use
 
+## Installation
+
+Add Piying to your Cargo dependencies:
+
+```toml
+[dependencies]
+piying = "0.2"
+```
+
+The default features enable actor macros and tracing. Optional remote networking
+uses the `remote` feature with `serde-codec` or `rkyv-codec`.
+See the [API documentation](https://docs.rs/piying) for actor and messaging examples.
+
+## Migrating to 0.2.0
+
+`ActorPool` worker errors now preserve `SendError<M, R::Error>` rather than only
+the handler error. Callers matching a pool's handler failure must handle that
+nested send-error type.
+
+Piying 0.2.0 requires libp2p 0.57.0 for consumers that compose Piying's
+network behaviours or exchange libp2p types with Piying. Custom request-response
+codecs implement libp2p's native async methods without `#[async_trait]`. The
+minimum Rust version remains 1.88.0.
+
+`registry::Event::RoutingUpdated::addresses` is now `Box<kad::Addresses>` to
+keep the larger upstream address collection out of every remote event. Borrowed
+access works through dereferencing; use `*addresses` when moving the collection
+into code that expects an owned `kad::Addresses`.
+
+The remote feature requires `hickory-proto` 0.26.3 or later in the 0.26 series to
+resolve `RUSTSEC-2026-0118` and `RUSTSEC-2026-0119`. The existing rkyv framing helpers
+remain supplied by `libp2p-rkyv-codec 0.3`; Piying implements the libp2p 0.57
+codec itself. Remote protocol identifiers and the `THSP` version-2 rkyv framing
+remain unchanged.
+
 ## Upstream features (inherited)
 
 - Lightweight async actors on Tokio
@@ -27,6 +64,34 @@ Fault-tolerant async actors built on Tokio.
 - Local and distributed communication via libp2p
 - Panic safety and actor isolation
 - Type-safe message interfaces
+
+## Development
+
+Run `nix develop` for the pinned Rust tools, Just, and Simit 0.19.0 with the
+coordinated-release event-SHA fix. Then:
+
+```sh
+just ci
+simit init ci --check --diff
+```
+
+GitHub Actions checks the entire workspace with all features and without
+default features, including its declared minimum Rust version. The
+`minimal-library` gate separately checks Piying's library with no features and
+with macros only; library-only checks avoid dev-dependencies re-enabling default
+features. The required `feature-matrix` gate also runs `just ci` for
+separate serde/rkyv lint and test runs, minimal-feature tests, and the
+`tokio_unstable` build. The `packaging` gate checks workspace package contents
+and verifies the macros crate archive. Both gates run before crate publishing
+as well.
+
+Publishing requires the GitHub repository secret `CRATES_IO_API_TOKEN` and a
+signed version tag trusted by `keys/maintainers.gpg`. The workflow publishes
+`piying_macros`, then `piying`, then `piying_actors`.
+The signed tag must resolve to the immutable workflow event commit; a moved tag
+fails validation before any release gates or publication run. The temporary
+`nix/simit-release-event.patch` carries the generator fix until it is released
+upstream.
 
 ## License
 

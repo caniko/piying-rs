@@ -30,7 +30,7 @@ use crate::request;
 use crate::{
     Actor, Reply,
     error::{self, HookError, Infallible, PanicError, SendError},
-    mailbox::{MailboxSender, Signal, SignalMailbox, WeakMailboxSender},
+    mailbox::{MailboxSender, SignalMailbox, WeakMailboxSender},
     message::{Message, StreamMessage},
     reply::ReplyError,
     request::{

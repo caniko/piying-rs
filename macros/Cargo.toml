@@ -1,13 +1,19 @@
 [package]
 name = "piying_macros"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.85.1"
 description = "Fault-tolerant Async Actors Built on Tokio - macros"
 readme = "../README.md"
-repository = "https://codeberg.org/caniko/rs-piying"
+repository = "https://github.com/caniko/piying-rs"
+documentation = "https://docs.rs/piying_macros"
 license = "MIT OR Apache-2.0"
-include = ["/src"]
+keywords = ["actor", "tokio", "macros"]
+categories = ["asynchronous", "concurrency", "rust-patterns"]
+include = ["/src", "/LICENSE"]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [lib]
 proc-macro = true

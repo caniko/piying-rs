@@ -1,3 +1,37 @@
+[flake]
+scope = "hooks-only"
+
 [ci]
-runner = "atlas"
+platform = "github"
+provider = "actions"
+runner = "ubuntu-latest"
 workspace = true
+publish_crates = true
+workspace_strategy = "aggregate"
+publish_strategy = "coordinated"
+with_msrv = true
+# The strict audit runs in the required gate below rather than twice in CI.
+with_audit = false
+
+[[ci.required_gates]]
+id = "release-audit"
+run = "cargo install cargo-audit --locked && cargo audit"
+timeout_minutes = 20
+
+[[ci.required_gates]]
+id = "minimal-library"
+run = "cargo check --locked -p piying --lib --no-default-features && cargo check --locked -p piying --lib --no-default-features --features macros"
+timeout_minutes = 15
+
+[[ci.required_gates]]
+id = "feature-matrix"
+run = "cargo install just --locked --version 1.58.0 && just ci"
+timeout_minutes = 60
+
+[[ci.required_gates]]
+id = "packaging"
+run = "cargo package --workspace --allow-dirty --list && cargo package -p piying_macros --allow-dirty"
+timeout_minutes = 15
+
+[release.signing]
+key = "818D507F1E62139F8A17EAA64623DEA06FDACFE1"

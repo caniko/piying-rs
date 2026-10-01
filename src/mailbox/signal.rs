@@ -26,6 +26,23 @@ pub enum Signal<A: Actor> {
 }
 
 impl<A: Actor> Signal<A> {
+    pub(crate) fn message<M>(
+        actor_ref: &ActorRef<A>,
+        message: M,
+        reply: Option<BoxReplySender>,
+    ) -> Self
+    where
+        A: crate::message::Message<M>,
+        M: Send + 'static,
+    {
+        Signal::Message {
+            message: Box::new(message),
+            actor_ref: actor_ref.clone(),
+            reply,
+            sent_within_actor: actor_ref.is_current(),
+        }
+    }
+
     pub(crate) fn downcast_message<M>(self) -> Option<M>
     where
         M: 'static,
@@ -88,19 +105,30 @@ where
     }
 
     fn signal_stop(&self) -> BoxFuture<'_, Result<(), SendError>> {
-        match &self.inner {
-            MailboxSenderInner::Bounded(tx) => async move {
-                tx.send(Signal::Stop)
-                    .await
-                    .map_err(|_| SendError::ActorNotRunning(()))
+        async move {
+            match &self.inner {
+                MailboxSenderInner::Bounded(tx) => {
+                    // Waiting for capacity is cancellable. Commit acceptance and the
+                    // stop signal together, with no await between them.
+                    let permit = tx
+                        .reserve()
+                        .await
+                        .map_err(|_| SendError::ActorNotRunning(()))?;
+                    self.stop_accepting();
+                    permit.send(Signal::Stop);
+                    #[cfg(feature = "metrics")]
+                    self.state.lifecycle_signals_sent.increment(1);
+                    Ok(())
+                }
+                MailboxSenderInner::Unbounded(_) => {
+                    self.stop_accepting();
+                    self.send(Signal::Stop)
+                        .await
+                        .map_err(|_| SendError::ActorNotRunning(()))
+                }
             }
-            .boxed(),
-            MailboxSenderInner::Unbounded(tx) => async move {
-                tx.send(Signal::Stop)
-                    .map_err(|_| SendError::ActorNotRunning(()))
-            }
-            .boxed(),
         }
+        .boxed()
     }
 }
 

@@ -94,4 +94,3 @@ impl From<libp2p::kad::GetProvidersError> for RegistryError {
         RegistryError::GetProviders(err)
     }
 }
-

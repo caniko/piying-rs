@@ -161,4 +161,3 @@ impl<T> Future for SwarmFuture<T> {
         )
     }
 }
-

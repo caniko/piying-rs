@@ -1,4 +1,4 @@
 upstream_url = "https://github.com/tqwewe/kameo.git"
 baseline_since = "2026-03-09T00:00:00Z"
-last_inspected_commit = "1d498c0566b613b9afe6d54965c4b191c84432e0"
-notes = "Initial empty-checkpoint baseline starts one month before Piying fork birth commit b28beaa on 2026-04-09. Future runs inspect from last_inspected_commit through latest Kameo HEAD. Upstream Kameo 0.21.0 is the current baseline for the Piying 0.1.0 release fork point."
+last_inspected_commit = "1b6bffb6d0fdc05492349c08cd3727621a810ed7"
+notes = "Reviewed all 60 commits after 1d498c0 on 2026-09-30; decisions and validation are recorded in review-2026-09-30.md. Ported shutdown panic capture, graceful-stop rejection, pool worker errors, and incomplete mailbox front-buffer handling. The 2026-10-01 libp2p 0.57/Hickory 0.26.3 migration resolves the advisory hold; remote consumers require coordinated migration, and earlier Regicide tests cover only the 0.56 baseline. This remains an inspection checkpoint, not release approval. Initial empty-checkpoint baseline remains one month before Piying fork birth commit b28beaa on 2026-04-09."

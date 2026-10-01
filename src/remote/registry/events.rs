@@ -55,7 +55,8 @@ pub enum Event {
         /// table, or whether it is an existing peer who's addresses changed.
         is_new_peer: bool,
         /// The full list of known addresses of `peer`.
-        addresses: kad::Addresses,
+        /// Boxed to keep lookup and messaging events compact.
+        addresses: Box<kad::Addresses>,
         /// Returns the minimum inclusive and maximum inclusive distance for
         /// the bucket of the peer.
         bucket_range: (kad::KBucketDistance, kad::KBucketDistance),
@@ -90,4 +91,3 @@ pub enum Event {
         address: Multiaddr,
     },
 }
-

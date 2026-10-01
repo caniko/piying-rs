@@ -20,9 +20,38 @@ enum MailboxReceiverInner<A: Actor> {
 }
 
 impl<A: Actor> MailboxReceiver<A> {
-    /// Re-inserts signals ahead of the channel, preserving their order, so they are
-    /// yielded before anything still queued. Used to keep pending messages across a restart.
-    #[allow(dead_code)]
+    fn new(inner: MailboxReceiverInner<A>) -> Self {
+        Self {
+            inner,
+            front: VecDeque::new(),
+            #[cfg(feature = "metrics")]
+            messages_received: metrics::counter!("piying_messages_received", "actor_name" => A::name()),
+            #[cfg(feature = "metrics")]
+            lifecycle_signals_received: metrics::counter!("piying_lifecycle_received", "actor_name" => A::name()),
+            #[cfg(feature = "metrics")]
+            link_died_signals_received: metrics::counter!("piying_link_died_received", "actor_name" => A::name()),
+        }
+    }
+
+    #[cfg(feature = "metrics")]
+    fn record_received(&self, signal: &Signal<A>) {
+        match signal {
+            Signal::Message { .. } => self.messages_received.increment(1),
+            Signal::StartupFinished | Signal::Stop => self.lifecycle_signals_received.increment(1),
+            Signal::LinkDied { .. } => self.link_died_signals_received.increment(1),
+        }
+    }
+
+    #[cfg(feature = "metrics")]
+    fn record_received_batch(&self, buffer: &[Signal<A>], count: usize) {
+        for signal in &buffer[buffer.len() - count..] {
+            self.record_received(signal);
+        }
+    }
+
+    /// Re-inserts previously received signals ahead of the channel in their original
+    /// order. These signals have already been counted by the receive metrics.
+    #[cfg(test)]
     pub(crate) fn push_front(&mut self, mut signals: VecDeque<Signal<A>>) {
         signals.append(&mut self.front);
         self.front = signals;
@@ -52,13 +81,8 @@ impl<A: Actor> MailboxReceiver<A> {
         };
 
         #[cfg(feature = "metrics")]
-        match &signal {
-            Some(Signal::Message { .. }) => self.messages_received.increment(1),
-            Some(Signal::StartupFinished | Signal::Stop) => {
-                self.lifecycle_signals_received.increment(1)
-            }
-            Some(Signal::LinkDied { .. }) => self.link_died_signals_received.increment(1),
-            None => {}
+        if let Some(signal) = &signal {
+            self.record_received(signal);
         }
 
         signal
@@ -71,24 +95,16 @@ impl<A: Actor> MailboxReceiver<A> {
     /// [`mpsc::Receiver::recv_many`]: tokio::sync::mpsc::Receiver::recv_many
     /// [`mpsc::UnboundedReceiver::recv_many`]: tokio::sync::mpsc::UnboundedReceiver::recv_many
     pub async fn recv_many(&mut self, buffer: &mut Vec<Signal<A>>, limit: usize) -> usize {
+        if !self.front.is_empty() {
+            return self.drain_front_into(buffer, limit);
+        }
         let count = match &mut self.inner {
             MailboxReceiverInner::Bounded(rx) => rx.recv_many(buffer, limit).await,
             MailboxReceiverInner::Unbounded(rx) => rx.recv_many(buffer, limit).await,
         };
 
         #[cfg(feature = "metrics")]
-        {
-            let len = buffer.len();
-            for signal in &buffer[len - 1 - count..len - 1] {
-                match signal {
-                    Signal::Message { .. } => self.messages_received.increment(1),
-                    Signal::StartupFinished | Signal::Stop => {
-                        self.lifecycle_signals_received.increment(1)
-                    }
-                    Signal::LinkDied { .. } => self.link_died_signals_received.increment(1),
-                }
-            }
-        }
+        self.record_received_batch(buffer, count);
 
         count
     }
@@ -110,13 +126,8 @@ impl<A: Actor> MailboxReceiver<A> {
         };
 
         #[cfg(feature = "metrics")]
-        match &res {
-            Ok(Signal::Message { .. }) => self.messages_received.increment(1),
-            Ok(Signal::StartupFinished | Signal::Stop) => {
-                self.lifecycle_signals_received.increment(1)
-            }
-            Ok(Signal::LinkDied { .. }) => self.link_died_signals_received.increment(1),
-            Err(_) => {}
+        if let Ok(signal) = &res {
+            self.record_received(signal);
         }
 
         res
@@ -139,13 +150,8 @@ impl<A: Actor> MailboxReceiver<A> {
         };
 
         #[cfg(feature = "metrics")]
-        match &signal {
-            Some(Signal::Message { .. }) => self.messages_received.increment(1),
-            Some(Signal::StartupFinished | Signal::Stop) => {
-                self.lifecycle_signals_received.increment(1)
-            }
-            Some(Signal::LinkDied { .. }) => self.link_died_signals_received.increment(1),
-            None => {}
+        if let Some(signal) = &signal {
+            self.record_received(signal);
         }
 
         signal
@@ -168,18 +174,7 @@ impl<A: Actor> MailboxReceiver<A> {
         };
 
         #[cfg(feature = "metrics")]
-        {
-            let len = buffer.len();
-            for signal in &buffer[len - 1 - count..len - 1] {
-                match signal {
-                    Signal::Message { .. } => self.messages_received.increment(1),
-                    Signal::StartupFinished | Signal::Stop => {
-                        self.lifecycle_signals_received.increment(1)
-                    }
-                    Signal::LinkDied { .. } => self.link_died_signals_received.increment(1),
-                }
-            }
-        }
+        self.record_received_batch(buffer, count);
 
         count
     }
@@ -234,10 +229,11 @@ impl<A: Actor> MailboxReceiver<A> {
     /// [`mpsc::Receiver::len`]: tokio::sync::mpsc::Receiver::len
     /// [`mpsc::UnboundedReceiver::len`]: tokio::sync::mpsc::UnboundedReceiver::len
     pub fn len(&self) -> usize {
-        match &self.inner {
+        let inner = match &self.inner {
             MailboxReceiverInner::Bounded(rx) => rx.len(),
             MailboxReceiverInner::Unbounded(rx) => rx.len(),
-        }
+        };
+        self.front.len() + inner
     }
 
     /// Polls to receive the next message on this channel.
@@ -257,15 +253,8 @@ impl<A: Actor> MailboxReceiver<A> {
         };
 
         #[cfg(feature = "metrics")]
-        match &poll {
-            Poll::Ready(Some(Signal::Message { .. })) => self.messages_received.increment(1),
-            Poll::Ready(Some(Signal::StartupFinished | Signal::Stop)) => {
-                self.lifecycle_signals_received.increment(1)
-            }
-            Poll::Ready(Some(Signal::LinkDied { .. })) => {
-                self.link_died_signals_received.increment(1)
-            }
-            Poll::Ready(None) | Poll::Pending => {}
+        if let Poll::Ready(Some(signal)) = &poll {
+            self.record_received(signal);
         }
 
         poll
@@ -293,19 +282,8 @@ impl<A: Actor> MailboxReceiver<A> {
         };
 
         #[cfg(feature = "metrics")]
-        {
-            if let Poll::Ready(count) = poll {
-                let len = buffer.len();
-                for signal in &buffer[len - 1 - count..len - 1] {
-                    match signal {
-                        Signal::Message { .. } => self.messages_received.increment(1),
-                        Signal::StartupFinished | Signal::Stop => {
-                            self.lifecycle_signals_received.increment(1)
-                        }
-                        Signal::LinkDied { .. } => self.link_died_signals_received.increment(1),
-                    }
-                }
-            }
+        if let Poll::Ready(count) = poll {
+            self.record_received_batch(buffer, count);
         }
 
         poll
@@ -347,3 +325,64 @@ impl<A: Actor> fmt::Debug for MailboxReceiver<A> {
     }
 }
 
+#[cfg(test)]
+mod receiver_tests {
+    use super::*;
+    use crate::error::Infallible;
+
+    struct TestActor;
+
+    impl Actor for TestActor {
+        type Args = Self;
+        type Error = Infallible;
+
+        async fn on_start(args: Self::Args, _: ActorRef<Self>) -> Result<Self, Self::Error> {
+            Ok(args)
+        }
+    }
+
+    #[tokio::test]
+    async fn batch_receive_preserves_front_order_and_reports_length() {
+        for (tx, mut rx) in [bounded::<TestActor>(8), unbounded()] {
+            tx.send(Signal::Stop).await.unwrap();
+            // Hotpath may proxy sends asynchronously. Buffer a received signal before
+            // checking the front queue so this assertion does not depend on scheduling.
+            let stop = rx.recv().await.unwrap();
+            rx.push_front(VecDeque::from([stop]));
+            rx.push_front(VecDeque::from([Signal::StartupFinished]));
+            assert_eq!(rx.len(), 2);
+            let mut buffer = Vec::new();
+            assert_eq!(rx.recv_many(&mut buffer, 0).await, 0);
+            assert_eq!(rx.recv_many(&mut buffer, 1).await, 1);
+            assert!(matches!(buffer.pop(), Some(Signal::StartupFinished)));
+            assert_eq!(rx.recv_many(&mut buffer, 1).await, 1);
+            assert!(matches!(buffer.pop(), Some(Signal::Stop)));
+            assert!(rx.is_empty());
+        }
+    }
+
+    #[test]
+    fn batch_receive_handles_empty_and_prefilled_buffers() {
+        for (tx, mut rx) in [bounded::<TestActor>(8), unbounded()] {
+            assert_eq!(rx.blocking_recv_many(&mut Vec::new(), 0), 0);
+            let mut buffer = vec![Signal::StartupFinished];
+            assert_eq!(rx.blocking_recv_many(&mut buffer, 0), 0);
+            tx.try_send(Signal::Stop).unwrap();
+            assert_eq!(rx.blocking_recv_many(&mut buffer, 1), 1);
+            assert!(matches!(buffer[0], Signal::StartupFinished));
+            assert!(matches!(buffer[1], Signal::Stop));
+
+            let waker = futures::task::noop_waker();
+            let mut cx = Context::from_waker(&waker);
+            assert_eq!(rx.poll_recv_many(&mut cx, &mut buffer, 0), Poll::Ready(0));
+            tx.try_send(Signal::StartupFinished).unwrap();
+            assert_eq!(
+                futures::executor::block_on(futures::future::poll_fn(|cx| {
+                    rx.poll_recv_many(cx, &mut buffer, 1)
+                })),
+                1
+            );
+            assert!(matches!(buffer[2], Signal::StartupFinished));
+        }
+    }
+}

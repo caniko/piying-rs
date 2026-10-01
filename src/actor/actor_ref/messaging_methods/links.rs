@@ -23,29 +23,19 @@ where
     /// ```
     #[inline]
     pub async fn link<B: Actor>(&self, sibling_ref: &ActorRef<B>) {
-        if self.id == sibling_ref.id {
+        let Some((mut this_links, mut sibling_links)) = self
+            .links
+            .lock_pair(self.id, &sibling_ref.links, sibling_ref.id)
+            .await
+        else {
             return;
-        }
+        };
 
-        if self.id < sibling_ref.id {
-            let mut this_links = self.links.lock().await;
-            let mut sibling_links = sibling_ref.links.lock().await;
-
-            this_links.insert(
-                sibling_ref.id,
-                Link::Local(sibling_ref.weak_signal_mailbox()),
-            );
-            sibling_links.insert(self.id, Link::Local(self.weak_signal_mailbox()));
-        } else {
-            let mut sibling_links = sibling_ref.links.lock().await;
-            let mut this_links = self.links.lock().await;
-
-            this_links.insert(
-                sibling_ref.id,
-                Link::Local(sibling_ref.weak_signal_mailbox()),
-            );
-            sibling_links.insert(self.id, Link::Local(self.weak_signal_mailbox()));
-        }
+        this_links.insert(
+            sibling_ref.id,
+            Link::Local(sibling_ref.weak_signal_mailbox()),
+        );
+        sibling_links.insert(self.id, Link::Local(self.weak_signal_mailbox()));
     }
 
     /// Blockingly links two actors as siblings, ensuring they notify each other if either one dies.
@@ -77,29 +67,18 @@ where
     /// [`link`]: ActorRef::link
     #[inline]
     pub fn blocking_link<B: Actor>(&self, sibling_ref: &ActorRef<B>) {
-        if self.id == sibling_ref.id {
+        let Some((mut this_links, mut sibling_links)) =
+            self.links
+                .blocking_lock_pair(self.id, &sibling_ref.links, sibling_ref.id)
+        else {
             return;
-        }
+        };
 
-        if self.id < sibling_ref.id {
-            let mut this_links = self.links.blocking_lock();
-            let mut sibling_links = sibling_ref.links.blocking_lock();
-
-            this_links.insert(
-                sibling_ref.id,
-                Link::Local(sibling_ref.weak_signal_mailbox()),
-            );
-            sibling_links.insert(self.id, Link::Local(self.weak_signal_mailbox()));
-        } else {
-            let mut sibling_links = sibling_ref.links.blocking_lock();
-            let mut this_links = self.links.blocking_lock();
-
-            this_links.insert(
-                sibling_ref.id,
-                Link::Local(sibling_ref.weak_signal_mailbox()),
-            );
-            sibling_links.insert(self.id, Link::Local(self.weak_signal_mailbox()));
-        }
+        this_links.insert(
+            sibling_ref.id,
+            Link::Local(sibling_ref.weak_signal_mailbox()),
+        );
+        sibling_links.insert(self.id, Link::Local(self.weak_signal_mailbox()));
     }
 
     /// Links the local actor with a remote actor, ensuring they notify each other if either one dies.
@@ -174,23 +153,9 @@ where
     /// ```
     #[inline]
     pub async fn unlink<B: Actor>(&self, sibling_ref: &ActorRef<B>) {
-        if self.id == sibling_ref.id {
-            return;
-        }
-
-        if self.id < sibling_ref.id {
-            let mut this_links = self.links.lock().await;
-            let mut sibling_links = sibling_ref.links.lock().await;
-
-            this_links.remove(&sibling_ref.id);
-            sibling_links.remove(&self.id);
-        } else {
-            let mut sibling_links = sibling_ref.links.lock().await;
-            let mut this_links = self.links.lock().await;
-
-            this_links.remove(&sibling_ref.id);
-            sibling_links.remove(&self.id);
-        }
+        self.links
+            .unlink(self.id, &sibling_ref.links, sibling_ref.id)
+            .await;
     }
 
     /// Blockingly unlinks two previously linked sibling actors.
@@ -224,23 +189,8 @@ where
     /// [`unlink`]: ActorRef::unlink
     #[inline]
     pub fn blocking_unlink<B: Actor>(&self, sibling_ref: &ActorRef<B>) {
-        if self.id == sibling_ref.id {
-            return;
-        }
-
-        if self.id < sibling_ref.id {
-            let mut this_links = self.links.blocking_lock();
-            let mut sibling_links = sibling_ref.links.blocking_lock();
-
-            this_links.remove(&sibling_ref.id);
-            sibling_links.remove(&self.id);
-        } else {
-            let mut sibling_links = sibling_ref.links.blocking_lock();
-            let mut this_links = self.links.blocking_lock();
-
-            this_links.remove(&sibling_ref.id);
-            sibling_links.remove(&self.id);
-        }
+        self.links
+            .blocking_unlink(self.id, &sibling_ref.links, sibling_ref.id);
     }
 
     /// Unlinks the local actor with a previously linked remote actor.
@@ -284,6 +234,4 @@ where
             .unlink::<B>(self.id, sibling_ref.id)
             .await
     }
-
-
 }

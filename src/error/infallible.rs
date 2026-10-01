@@ -57,14 +57,20 @@ impl Hash for Infallible {
     }
 }
 
-#[cfg(all(feature = "remote", any(not(feature = "serde-codec"), feature = "rkyv-codec")))]
+#[cfg(all(
+    feature = "remote",
+    any(not(feature = "serde-codec"), feature = "rkyv-codec")
+))]
 impl crate::remote::codec::Encode for Infallible {
     fn encode(&self) -> Result<Vec<u8>, crate::remote::codec::CodecError> {
         match *self {}
     }
 }
 
-#[cfg(all(feature = "remote", any(not(feature = "serde-codec"), feature = "rkyv-codec")))]
+#[cfg(all(
+    feature = "remote",
+    any(not(feature = "serde-codec"), feature = "rkyv-codec")
+))]
 impl crate::remote::codec::Decode for Infallible {
     fn decode(_bytes: &[u8]) -> Result<Self, crate::remote::codec::CodecError> {
         Err(crate::remote::codec::CodecError::new(

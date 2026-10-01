@@ -134,4 +134,3 @@ async fn signal_link_died(
 
     (fns.signal_link_died)(dead_actor_id, notified_actor_id, stop_reason).await
 }
-

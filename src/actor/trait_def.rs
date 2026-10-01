@@ -225,8 +225,8 @@ pub trait Actor: Sized + Send + 'static {
     ///
     /// This allows the actor to perform any necessary cleanup or release resources before being fully stopped.
     ///
-    /// The error returned by this method will be unwrapped by piying, causing a panic in the tokio task or
-    /// thread running the actor.
+    /// Errors and panics are captured and reported through the actor error hook and
+    /// [`ActorRef::wait_for_shutdown_result`].
     #[allow(unused_variables)]
     #[inline]
     fn on_stop(

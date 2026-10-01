@@ -5,6 +5,65 @@
 #[allow(missing_debug_implementations)]
 pub(crate) struct Links(Arc<Mutex<HashMap<ActorId, Link>>>);
 
+type LinkGuard<'a> = tokio::sync::MutexGuard<'a, HashMap<ActorId, Link>>;
+
+impl Links {
+    // Acquire both maps in actor ID order so opposite-direction operations cannot deadlock.
+    async fn lock_pair<'a>(
+        &'a self,
+        id: ActorId,
+        sibling: &'a Self,
+        sibling_id: ActorId,
+    ) -> Option<(LinkGuard<'a>, LinkGuard<'a>)> {
+        if id == sibling_id {
+            return None;
+        }
+
+        if id < sibling_id {
+            Some((self.lock().await, sibling.lock().await))
+        } else {
+            let sibling = sibling.lock().await;
+            Some((self.lock().await, sibling))
+        }
+    }
+
+    fn blocking_lock_pair<'a>(
+        &'a self,
+        id: ActorId,
+        sibling: &'a Self,
+        sibling_id: ActorId,
+    ) -> Option<(LinkGuard<'a>, LinkGuard<'a>)> {
+        if id == sibling_id {
+            return None;
+        }
+
+        if id < sibling_id {
+            Some((self.blocking_lock(), sibling.blocking_lock()))
+        } else {
+            let sibling = sibling.blocking_lock();
+            Some((self.blocking_lock(), sibling))
+        }
+    }
+
+    async fn unlink(&self, id: ActorId, sibling: &Self, sibling_id: ActorId) {
+        if let Some((mut this_links, mut sibling_links)) =
+            self.lock_pair(id, sibling, sibling_id).await
+        {
+            this_links.remove(&sibling_id);
+            sibling_links.remove(&id);
+        }
+    }
+
+    fn blocking_unlink(&self, id: ActorId, sibling: &Self, sibling_id: ActorId) {
+        if let Some((mut this_links, mut sibling_links)) =
+            self.blocking_lock_pair(id, sibling, sibling_id)
+        {
+            this_links.remove(&sibling_id);
+            sibling_links.remove(&id);
+        }
+    }
+}
+
 impl ops::Deref for Links {
     type Target = Mutex<HashMap<ActorId, Link>>;
 

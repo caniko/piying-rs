@@ -49,3 +49,26 @@ where
     }
 }
 
+async fn receive_reply<M, R, T>(
+    rx: oneshot::Receiver<Result<BoxReply, BoxSendError>>,
+    reply_timeout: T,
+) -> Result<R::Ok, SendError<M, R::Error>>
+where
+    M: 'static,
+    R: Reply,
+    T: Into<Option<Duration>>,
+{
+    let reply = match reply_timeout.into() {
+        Some(timeout) => tokio::time::timeout(timeout, rx).await??,
+        None => rx.await?,
+    };
+    downcast_reply::<M, R>(reply)
+}
+
+fn downcast_reply<M: 'static, R: Reply>(
+    reply: Result<BoxReply, BoxSendError>,
+) -> Result<R::Ok, SendError<M, R::Error>> {
+    reply
+        .map(|val| R::downcast_ok(val))
+        .map_err(R::downcast_err)
+}

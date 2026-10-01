@@ -97,12 +97,7 @@ where
         );
 
         let (reply, rx) = oneshot::channel();
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: Some(reply),
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, Some(reply));
 
         let tx = self.actor_ref.mailbox_sender();
         match self.mailbox_timeout.into() {
@@ -114,14 +109,7 @@ where
             }
         }
 
-        let reply = match self.reply_timeout.into() {
-            Some(timeout) => tokio::time::timeout(timeout, rx).await??,
-            None => rx.await?,
-        };
-        match reply {
-            Ok(val) => Ok(<A::Reply as Reply>::downcast_ok(val)),
-            Err(err) => Err(<A::Reply as Reply>::downcast_err(err)),
-        }
+        receive_reply::<M, A::Reply, _>(rx, self.reply_timeout).await
     }
 
     /// Enqueues the message into the actors mailbox, returning a pending reply which needs to be awaited.
@@ -160,34 +148,25 @@ where
         Tr: Into<Option<Duration>> + Send + 'static,
     {
         let (reply, rx) = oneshot::channel();
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: Some(reply),
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, Some(reply));
 
         let tx = self.actor_ref.mailbox_sender();
         match self.mailbox_timeout.into() {
             Some(timeout) => {
-                tx.send_timeout(signal, timeout).await?;
+                tx.send_timeout(signal, timeout)
+                    .await
+                    .map_err(SendError::<M>::from)
+                    .map_err(|err| err.map_msg(|_| ()))?;
             }
             None => {
-                tx.send(signal).await?;
+                tx.send(signal)
+                    .await
+                    .map_err(SendError::<M>::from)
+                    .map_err(|err| err.map_msg(|_| ()))?;
             }
         }
 
-        let fut = async move {
-            let reply = match self.reply_timeout.into() {
-                Some(timeout) => tokio::time::timeout(timeout, rx).await??,
-                None => rx.await?,
-            };
-            match reply {
-                Ok(val) => Ok(<A::Reply as Reply>::downcast_ok(val)),
-                Err(err) => Err(<A::Reply as Reply>::downcast_err(err)),
-            }
-        }
-        .boxed();
+        let fut = receive_reply::<M, A::Reply, _>(rx, self.reply_timeout).boxed();
 
         Ok(PendingReply { fut })
     }
@@ -209,20 +188,26 @@ where
     where
         Tm: Into<Option<Duration>>,
     {
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: Some(sender.boxed()),
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, Some(sender.boxed()));
 
         let tx = self.actor_ref.mailbox_sender();
         match self.mailbox_timeout.into() {
             Some(timeout) => {
-                tx.send_timeout(signal, timeout).await?;
+                tx.send_timeout(signal, timeout)
+                    .await
+                    .map_err(|err| match err {
+                        mpsc::error::SendTimeoutError::Timeout(signal) => {
+                            SendError::Timeout(Some(recover_forwarded_message(signal)))
+                        }
+                        mpsc::error::SendTimeoutError::Closed(signal) => {
+                            SendError::ActorNotRunning(recover_forwarded_message(signal))
+                        }
+                    })?;
             }
             None => {
-                tx.send(signal).await?;
+                tx.send(signal)
+                    .await
+                    .map_err(|err| SendError::ActorNotRunning(recover_forwarded_message(err.0)))?;
             }
         }
 
@@ -245,15 +230,17 @@ where
         (),
         SendError<(M, ReplySender<<A::Reply as Reply>::Value>), <A::Reply as Reply>::Error>,
     > {
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: Some(sender.boxed()),
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, Some(sender.boxed()));
 
         let tx = self.actor_ref.mailbox_sender();
-        tx.try_send(signal)?;
+        tx.try_send(signal).map_err(|err| match err {
+            mpsc::error::TrySendError::Full(signal) => {
+                SendError::MailboxFull(recover_forwarded_message(signal))
+            }
+            mpsc::error::TrySendError::Closed(signal) => {
+                SendError::ActorNotRunning(recover_forwarded_message(signal))
+            }
+        })?;
 
         Ok(())
     }
@@ -272,24 +259,12 @@ where
         Tr: Into<Option<Duration>>,
     {
         let (reply, rx) = oneshot::channel();
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: Some(reply),
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, Some(reply));
 
         let tx = self.actor_ref.mailbox_sender();
         tx.try_send(signal)?;
 
-        let reply = match self.reply_timeout.into() {
-            Some(timeout) => tokio::time::timeout(timeout, rx).await??,
-            None => rx.await?,
-        };
-        match reply {
-            Ok(val) => Ok(<A::Reply as Reply>::downcast_ok(val)),
-            Err(err) => Err(<A::Reply as Reply>::downcast_err(err)),
-        }
+        receive_reply::<M, A::Reply, _>(rx, self.reply_timeout).await
     }
 
     /// Tries to enqueue the message into the actors mailbox without waiting for mailbox capacity,
@@ -328,27 +303,14 @@ where
         Tr: Into<Option<Duration>> + Send + 'static,
     {
         let (reply, rx) = oneshot::channel();
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: Some(reply),
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, Some(reply));
 
         let tx = self.actor_ref.mailbox_sender();
-        tx.try_send(signal)?;
+        tx.try_send(signal)
+            .map_err(SendError::<M>::from)
+            .map_err(|err| err.map_msg(|_| ()))?;
 
-        let fut = async move {
-            let reply = match self.reply_timeout.into() {
-                Some(timeout) => tokio::time::timeout(timeout, rx).await??,
-                None => rx.await?,
-            };
-            match reply {
-                Ok(val) => Ok(<A::Reply as Reply>::downcast_ok(val)),
-                Err(err) => Err(<A::Reply as Reply>::downcast_err(err)),
-            }
-        }
-        .boxed();
+        let fut = receive_reply::<M, A::Reply, _>(rx, self.reply_timeout).boxed();
 
         Ok(PendingReply { fut })
     }
@@ -365,20 +327,12 @@ where
         self,
     ) -> Result<<A::Reply as Reply>::Ok, SendError<M, <A::Reply as Reply>::Error>> {
         let (reply, rx) = oneshot::channel();
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: Some(reply),
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, Some(reply));
 
         let tx = self.actor_ref.mailbox_sender();
         tx.blocking_send(signal)?;
 
-        match rx.blocking_recv()? {
-            Ok(val) => Ok(<A::Reply as Reply>::downcast_ok(val)),
-            Err(err) => Err(<A::Reply as Reply>::downcast_err(err)),
-        }
+        downcast_reply::<M, A::Reply>(rx.blocking_recv()?)
     }
 
     /// Sends a message in a blocking context with the reply being sent back to a channel.
@@ -390,15 +344,11 @@ where
         (),
         SendError<(M, ReplySender<<A::Reply as Reply>::Value>), <A::Reply as Reply>::Error>,
     > {
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: Some(sender.boxed()),
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, Some(sender.boxed()));
 
         let tx = self.actor_ref.mailbox_sender();
-        tx.blocking_send(signal)?;
+        tx.blocking_send(signal)
+            .map_err(|err| SendError::ActorNotRunning(recover_forwarded_message(err.0)))?;
 
         Ok(())
     }
@@ -441,20 +391,14 @@ where
     /// ```
     pub fn blocking_enqueue(self) -> Result<BlockingPendingReply<'a, M, A::Reply>, SendError> {
         let (reply, rx) = oneshot::channel();
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: Some(reply),
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, Some(reply));
 
         let tx = self.actor_ref.mailbox_sender();
-        tx.blocking_send(signal)?;
+        tx.blocking_send(signal)
+            .map_err(SendError::<M>::from)
+            .map_err(|err| err.map_msg(|_| ()))?;
 
-        let f = Box::new(move || match rx.blocking_recv()? {
-            Ok(val) => Ok(<A::Reply as Reply>::downcast_ok(val)),
-            Err(err) => Err(<A::Reply as Reply>::downcast_err(err)),
-        });
+        let f = Box::new(move || downcast_reply::<M, A::Reply>(rx.blocking_recv()?));
         Ok(BlockingPendingReply { f })
     }
 }
@@ -471,5 +415,76 @@ where
 
     fn into_future(self) -> Self::IntoFuture {
         self.send().boxed()
+    }
+}
+
+fn recover_forwarded_message<A: Actor, M: 'static, R>(signal: Signal<A>) -> (M, ReplySender<R>) {
+    let Signal::Message {
+        message,
+        reply: Some(tx),
+        ..
+    } = signal
+    else {
+        unreachable!("forwarded requests always contain a message and reply sender");
+    };
+    (
+        *message
+            .as_any()
+            .downcast()
+            .expect("forwarded message type matches the request"),
+        ReplySender::new(tx),
+    )
+}
+
+#[cfg(test)]
+mod forwarding_tests {
+    use super::*;
+    use crate::{actor::PreparedActor, error::Infallible, mailbox, message::Context};
+
+    struct TestActor;
+
+    impl Actor for TestActor {
+        type Args = Self;
+        type Error = Infallible;
+
+        async fn on_start(args: Self::Args, _: ActorRef<Self>) -> Result<Self, Self::Error> {
+            Ok(args)
+        }
+    }
+
+    impl Message<u32> for TestActor {
+        type Reply = ();
+
+        async fn handle(&mut self, _: u32, _: &mut Context<Self, Self::Reply>) {}
+    }
+
+    #[tokio::test]
+    async fn rejected_forward_returns_the_message_and_usable_reply_sender() {
+        let prepared = PreparedActor::new(mailbox::unbounded::<TestActor>());
+        let actor = prepared.actor_ref();
+        actor.stop_gracefully().await.unwrap();
+
+        for mode in 0..4 {
+            let (tx, rx) = oneshot::channel();
+            let sender = ReplySender::new(tx);
+            let result = match mode {
+                0 => actor.ask(mode).forward(sender).await,
+                1 => {
+                    actor
+                        .ask(mode)
+                        .mailbox_timeout(Duration::from_secs(1))
+                        .forward(sender)
+                        .await
+                }
+                2 => actor.ask(mode).try_forward(sender),
+                _ => actor.ask(mode).blocking_forward(sender),
+            };
+            let Err(SendError::ActorNotRunning((msg, sender))) = result else {
+                panic!("expected the rejected message and reply sender");
+            };
+            assert_eq!(msg, mode);
+            sender.send(());
+            assert!(rx.await.unwrap().is_ok());
+        }
     }
 }

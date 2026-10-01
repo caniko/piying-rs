@@ -87,7 +87,8 @@ where
         } else {
             let request = remote(shared_data);
             let summary = request.summary();
-            let request_id = RequestId::Outbound(self.request_response.send_request(peer_id, request));
+            let request_id =
+                RequestId::Outbound(self.request_response.send_request(peer_id, request));
             self.requests.insert(
                 request_id,
                 RequestContext {

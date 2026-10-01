@@ -1,5 +1,4 @@
 impl Behaviour {
-
     /// Creates a new registry behaviour.
     pub fn new(local_peer_id: PeerId) -> Self {
         let mut config = kad::Config::new(proto_name());
@@ -197,6 +196,4 @@ impl Behaviour {
 
         query_id
     }
-
-
 }

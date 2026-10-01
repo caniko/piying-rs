@@ -27,9 +27,12 @@ where
     }
 
     /// Returns whether the actor is currently alive.
+    ///
+    /// Returns `false` after graceful stop is requested, even while queued messages are
+    /// still being processed. Use [`Self::wait_for_shutdown`] to wait for cleanup to finish.
     #[inline]
     pub fn is_alive(&self) -> bool {
-        !self.mailbox_sender.is_closed()
+        !self.mailbox_sender.is_closed() && self.mailbox_sender.is_accepting()
     }
 
     /// Registers the actor under a given name in the actor registry.
@@ -186,13 +189,14 @@ where
     /// Signals the actor to stop after processing all messages currently in its mailbox.
     ///
     /// This method ensures that the actor finishes processing any messages that were already in the queue
-    /// before it shuts down. Any new messages sent after the stop signal will be ignored.
+    /// before it shuts down. New messages are rejected with [`SendError::ActorNotRunning`].
+    ///
+    /// A bounded mailbox first waits for capacity to queue the stop signal. Cancelling
+    /// during that wait leaves the actor accepting messages. Rejection begins when the
+    /// stop signal is queued; cancelling cannot interrupt that transition.
     #[inline]
     pub async fn stop_gracefully(&self) -> Result<(), SendError> {
-        self.mailbox_sender
-            .send(Signal::Stop)
-            .await
-            .map_err(|_| SendError::ActorNotRunning(()))
+        self.mailbox_sender.signal_stop().await
     }
 
     /// Kills the actor immediately.
@@ -285,12 +289,7 @@ where
     where
         A::Error: Clone,
     {
-        match self.startup_result.wait().await {
-            Ok(()) => Ok(()),
-            Err(err) => Err(err
-                .with_downcast_ref(|err: &A::Error| HookError::Error(err.clone()))
-                .unwrap_or_else(|| HookError::Panicked(err.clone()))),
-        }
+        clone_hook_result(self.startup_result.wait().await)
     }
 
     /// Waits for the actor to finish startup, returning the startup result with a clousre containing the error.
@@ -332,25 +331,7 @@ where
     where
         F: FnOnce(Result<(), HookError<&A::Error>>) -> R,
     {
-        match self.startup_result.wait().await {
-            Ok(()) => f(Ok(())),
-            Err(err) => {
-                let mut f = Some(f);
-                let result = err.with_downcast_ref(|e: &A::Error| {
-                    (f.take().expect("taken exactly once in downcast branch"))(Err(
-                        HookError::Error(e),
-                    ))
-                });
-                match result {
-                    Some(r) => r,
-                    None => (f
-                        .take()
-                        .expect("not taken: downcast branch was not entered"))(
-                        Err(HookError::Panicked(err.clone())),
-                    ),
-                }
-            }
-        }
+        with_hook_result(self.startup_result.wait().await, f)
     }
 
     /// Waits for the actor to finish processing and stop running.
@@ -365,7 +346,7 @@ where
     /// before calling this method.
     #[inline]
     pub async fn wait_for_shutdown(&self) {
-        self.mailbox_sender.closed().await
+        self.shutdown_result.wait().await;
     }
 
     /// Waits for the actor to finish shutdown, returning the shutdown result with a clone of the error.
@@ -416,12 +397,7 @@ where
         A::Error: Clone,
     {
         self.mailbox_sender.closed().await;
-        match self.shutdown_result.wait().await {
-            Ok(()) => Ok(()),
-            Err(err) => Err(err
-                .with_downcast_ref(|err: &A::Error| HookError::Error(err.clone()))
-                .unwrap_or_else(|| HookError::Panicked(err.clone()))),
-        }
+        clone_hook_result(self.shutdown_result.wait().await)
     }
 
     /// Waits for the actor to finish shutdown, returning the shutdown result with a clone of the error.
@@ -474,23 +450,40 @@ where
         F: FnOnce(Result<(), HookError<&A::Error>>) -> R,
     {
         self.mailbox_sender.closed().await;
-        match self.shutdown_result.wait().await {
-            Ok(()) => f(Ok(())),
-            Err(err) => {
-                let mut f = Some(f);
-                let result = err.with_downcast_ref(|e: &A::Error| {
-                    (f.take().expect("taken exactly once in downcast branch"))(Err(
-                        HookError::Error(e),
-                    ))
-                });
-                match result {
-                    Some(r) => r,
-                    None => (f
-                        .take()
-                        .expect("not taken: downcast branch was not entered"))(
-                        Err(HookError::Panicked(err.clone())),
-                    ),
-                }
+        with_hook_result(self.shutdown_result.wait().await, f)
+    }
+}
+
+fn clone_hook_result<E: ReplyError + Clone>(
+    result: &Result<(), PanicError>,
+) -> Result<(), HookError<E>> {
+    match result {
+        Ok(()) => Ok(()),
+        Err(err) => Err(err
+            .with_downcast_ref(|err: &E| HookError::Error(err.clone()))
+            .unwrap_or_else(|| HookError::Panicked(err.clone()))),
+    }
+}
+
+fn with_hook_result<E, F, R>(result: &Result<(), PanicError>, f: F) -> R
+where
+    E: ReplyError,
+    F: FnOnce(Result<(), HookError<&E>>) -> R,
+{
+    match result {
+        Ok(()) => f(Ok(())),
+        Err(err) => {
+            let mut f = Some(f);
+            let result = err.with_downcast_ref(|e: &E| {
+                (f.take().expect("taken exactly once in downcast branch"))(Err(HookError::Error(e)))
+            });
+            match result {
+                Some(r) => r,
+                None => (f
+                    .take()
+                    .expect("not taken: downcast branch was not entered"))(
+                    Err(HookError::Panicked(err.clone())),
+                ),
             }
         }
     }

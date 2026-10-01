@@ -100,4 +100,3 @@ pub enum Event {
         request_id: request_response::InboundRequestId,
     },
 }
-

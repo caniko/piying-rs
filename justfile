@@ -13,6 +13,9 @@ test-rkyv:
 
 # Test minimal feature set (no remote)
 test-minimal:
+    # Library-only checks avoid dev-dependencies re-enabling macros and tracing.
+    cargo check --locked -p piying --lib --no-default-features
+    cargo check --locked -p piying --lib --no-default-features --features macros
     cargo test -p piying --no-default-features
     cargo test -p piying --no-default-features --features macros
     cargo test -p piying_actors
@@ -41,5 +44,5 @@ fmt:
 build-tokio-unstable:
     RUSTFLAGS="--cfg tokio_unstable" cargo build --workspace --features macros,tracing,remote,rkyv-codec,metrics
 
-# Full CI check (mirrors Woodpecker pipeline)
+# Full local feature-matrix CI check
 ci: fmt-check lint test test-minimal build-tokio-unstable

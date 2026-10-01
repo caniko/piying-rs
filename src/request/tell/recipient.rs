@@ -97,4 +97,3 @@ where
             .tell(self.msg, self.mailbox_timeout.into())
     }
 }
-

@@ -260,20 +260,6 @@ impl Behaviour {
                             // No progress event needed
                         }
                         // Error cases are still useful to report
-                        Err(kad::GetRecordError::QuorumFailed { quorum, .. }) => {
-                            match &lookup_query.reply {
-                                Some(tx) => {
-                                    let _ = tx.send(Err(RegistryError::QuorumFailed { quorum }));
-                                }
-                                None => {
-                                    self.pending_events.push_back(Event::LookupProgressed {
-                                        provider_query_id,
-                                        get_query_id: id,
-                                        result: Err(RegistryError::QuorumFailed { quorum }),
-                                    });
-                                }
-                            }
-                        }
                         Err(kad::GetRecordError::Timeout { .. }) => match &lookup_query.reply {
                             Some(tx) => {
                                 let _ = tx.send(Err(RegistryError::Timeout));
@@ -377,7 +363,7 @@ impl Behaviour {
                 Some(Event::RoutingUpdated {
                     peer,
                     is_new_peer,
-                    addresses,
+                    addresses: Box::new(addresses),
                     bucket_range,
                     old_peer,
                 }),
@@ -392,6 +378,4 @@ impl Behaviour {
             kad::Event::ModeChanged { .. } => (false, None),
         }
     }
-
-
 }

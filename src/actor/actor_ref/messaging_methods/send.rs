@@ -2,7 +2,6 @@ impl<A> ActorRef<A>
 where
     A: Actor,
 {
-
     /// Sends a message to the actor and waits for a reply.
     ///
     /// The `ask` pattern is used when you expect a response from the actor. This method returns
@@ -91,6 +90,4 @@ where
             std::panic::Location::caller(),
         )
     }
-
-
 }

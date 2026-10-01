@@ -163,7 +163,6 @@ where
 mod rkyv_transport {
     use std::io;
 
-    use async_trait::async_trait;
     use futures::prelude::*;
     use libp2p::{StreamProtocol, request_response};
     use libp2p_rkyv_codec::{VersionedFrameConfig, read_versioned_rkyv, write_versioned_rkyv};
@@ -272,7 +271,6 @@ mod rkyv_transport {
         Ok(envelope.response)
     }
 
-    #[async_trait]
     impl request_response::Codec for PiyingRkyvCodec {
         type Protocol = StreamProtocol;
         type Request = SwarmRequest;

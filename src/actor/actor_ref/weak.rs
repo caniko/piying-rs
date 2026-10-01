@@ -85,12 +85,7 @@ impl<A: Actor> WeakActorRef<A> {
     where
         A::Error: Clone,
     {
-        match self.startup_result.wait().await {
-            Ok(()) => Ok(()),
-            Err(err) => Err(err
-                .with_downcast_ref(|err: &A::Error| HookError::Error(err.clone()))
-                .unwrap_or_else(|| HookError::Panicked(err.clone()))),
-        }
+        clone_hook_result(self.startup_result.wait().await)
     }
 
     /// Waits for the actor to finish startup, returning the startup result with a closure containing the error.
@@ -100,25 +95,7 @@ impl<A: Actor> WeakActorRef<A> {
     where
         F: FnOnce(Result<(), HookError<&A::Error>>) -> R,
     {
-        match self.startup_result.wait().await {
-            Ok(()) => f(Ok(())),
-            Err(err) => {
-                let mut f = Some(f);
-                let result = err.with_downcast_ref(|e: &A::Error| {
-                    (f.take().expect("taken exactly once in downcast branch"))(Err(
-                        HookError::Error(e),
-                    ))
-                });
-                match result {
-                    Some(r) => r,
-                    None => (f
-                        .take()
-                        .expect("not taken: downcast branch was not entered"))(
-                        Err(HookError::Panicked(err.clone())),
-                    ),
-                }
-            }
-        }
+        with_hook_result(self.startup_result.wait().await, f)
     }
 
     /// Waits for the actor to finish processing and stop running.
@@ -136,12 +113,7 @@ impl<A: Actor> WeakActorRef<A> {
     where
         A::Error: Clone,
     {
-        match self.shutdown_result.wait().await {
-            Ok(()) => Ok(()),
-            Err(err) => Err(err
-                .with_downcast_ref(|err: &A::Error| HookError::Error(err.clone()))
-                .unwrap_or_else(|| HookError::Panicked(err.clone()))),
-        }
+        clone_hook_result(self.shutdown_result.wait().await)
     }
 
     /// Waits for the actor to finish shutdown, returning the shutdown result with a clone of the error.
@@ -151,25 +123,7 @@ impl<A: Actor> WeakActorRef<A> {
     where
         F: FnOnce(Result<(), HookError<&A::Error>>) -> R,
     {
-        match self.shutdown_result.wait().await {
-            Ok(()) => f(Ok(())),
-            Err(err) => {
-                let mut f = Some(f);
-                let result = err.with_downcast_ref(|e: &A::Error| {
-                    (f.take().expect("taken exactly once in downcast branch"))(Err(
-                        HookError::Error(e),
-                    ))
-                });
-                match result {
-                    Some(r) => r,
-                    None => (f
-                        .take()
-                        .expect("not taken: downcast branch was not entered"))(
-                        Err(HookError::Panicked(err.clone())),
-                    ),
-                }
-            }
-        }
+        with_hook_result(self.shutdown_result.wait().await, f)
     }
 
     /// Unlinks two previously linked sibling actors.
@@ -177,23 +131,9 @@ impl<A: Actor> WeakActorRef<A> {
     /// See [`ActorRef::unlink`] for full details and examples.
     #[inline]
     pub async fn unlink<B: Actor>(&self, sibling_ref: &ActorRef<B>) {
-        if self.id == sibling_ref.id {
-            return;
-        }
-
-        if self.id < sibling_ref.id {
-            let mut this_links = self.links.lock().await;
-            let mut sibling_links = sibling_ref.links.lock().await;
-
-            this_links.remove(&sibling_ref.id);
-            sibling_links.remove(&self.id);
-        } else {
-            let mut sibling_links = sibling_ref.links.lock().await;
-            let mut this_links = self.links.lock().await;
-
-            this_links.remove(&sibling_ref.id);
-            sibling_links.remove(&self.id);
-        }
+        self.links
+            .unlink(self.id, &sibling_ref.links, sibling_ref.id)
+            .await;
     }
 
     /// Blockingly unlinks two previously linked sibling actors.
@@ -201,23 +141,8 @@ impl<A: Actor> WeakActorRef<A> {
     /// See [`ActorRef::blocking_unlink`] for full details and examples.
     #[inline]
     pub fn blocking_unlink<B: Actor>(&self, sibling_ref: &ActorRef<B>) {
-        if self.id == sibling_ref.id {
-            return;
-        }
-
-        if self.id < sibling_ref.id {
-            let mut this_links = self.links.blocking_lock();
-            let mut sibling_links = sibling_ref.links.blocking_lock();
-
-            this_links.remove(&sibling_ref.id);
-            sibling_links.remove(&self.id);
-        } else {
-            let mut sibling_links = sibling_ref.links.blocking_lock();
-            let mut this_links = self.links.blocking_lock();
-
-            this_links.remove(&sibling_ref.id);
-            sibling_links.remove(&self.id);
-        }
+        self.links
+            .blocking_unlink(self.id, &sibling_ref.links, sibling_ref.id);
     }
 
     /// Unlinks the local actor with a previously linked remote actor.

@@ -6,15 +6,8 @@
   treefmt = {
     enable = true;
     name = "treefmt";
-    entry = "${treefmtWrapper}/bin/treefmt --fail-on-change";
-    pass_filenames = false;
-  };
-
-  cargo-fmt = {
-    enable = true;
-    name = "cargo fmt";
-    entry = "cargo fmt --all -- --check";
-    extraPackages = pkgs.lib.optional (rustToolchain != null) rustToolchain;
+    package = treefmtWrapper;
+    entry = "${treefmtWrapper}/bin/treefmt --ci";
     pass_filenames = false;
   };
 
@@ -29,7 +22,7 @@
   cargo-msrv = {
     enable = true;
     name = "cargo check MSRV";
-    entry = "${pkgs.rust-bin.stable."1.88.0".default}/bin/cargo check --workspace --all-features";
+    entry = "env RUSTC=${pkgs.rust-bin.stable."1.88.0".default}/bin/rustc ${pkgs.rust-bin.stable."1.88.0".default}/bin/cargo check --workspace --all-features";
     extraPackages = [pkgs.rust-bin.stable."1.88.0".default];
     pass_filenames = false;
     stages = ["pre-push" "manual"];

@@ -1,15 +1,19 @@
 [package]
 name = "piying_actors"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.88.0"
 description = "Utility actors for piying"
 readme = "../README.md"
-repository = "https://codeberg.org/caniko/rs-piying"
+repository = "https://github.com/caniko/piying-rs"
+documentation = "https://docs.rs/piying_actors"
 license = "MIT OR Apache-2.0"
 keywords = ["actor", "tokio", "broker", "pool", "pubsub"]
 categories = ["asynchronous", "concurrency", "rust-patterns"]
-include = ["/src"]
+include = ["/src", "/LICENSE"]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [dependencies]
 futures.workspace = true

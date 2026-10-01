@@ -1,4 +1,4 @@
-use std::{convert, ops::ControlFlow, panic::AssertUnwindSafe, sync::Arc, thread};
+use std::{future::Future, ops::ControlFlow, panic::AssertUnwindSafe, sync::Arc, thread};
 
 use futures::{
     FutureExt, StreamExt,
@@ -20,6 +20,7 @@ use crate::{
     actor::{Actor, ActorRef, CURRENT_ACTOR_ID, Link, Links, kind::ActorBehaviour},
     error::{ActorStopReason, PanicError, PanicReason, SendError, invoke_actor_error_hook},
     mailbox::{MailboxReceiver, MailboxSender, Signal},
+    reply::ReplyError,
 };
 
 use super::ActorId;
@@ -169,12 +170,10 @@ where
     #[cfg(feature = "tracing")]
     trace!(%id, %name, "actor started");
 
-    let start_res = AssertUnwindSafe(A::on_start(args, actor_ref.clone()))
-        .catch_unwind()
-        .await
-        .map(|res| res.map_err(|err| PanicError::new(Box::new(err), PanicReason::OnStart)))
-        .map_err(|err| PanicError::new_from_panic_any(err, PanicReason::OnStart))
-        .and_then(convert::identity);
+    let start_res = catch_actor_hook(PanicReason::OnStart, || {
+        A::on_start(args, actor_ref.clone())
+    })
+    .await;
     let startup_finished = matches!(
         actor_ref.weak_signal_mailbox().signal_startup_finished(),
         Err(SendError::MailboxFull(()))
@@ -203,7 +202,10 @@ where
             let mut notify_futs = notify_links(id, &actor_ref.links, &reason).await;
 
             log_actor_stop_reason(id, name, &reason);
-            let on_stop_res = actor.on_stop(actor_ref.clone(), reason.clone()).await;
+            let on_stop_res = catch_actor_hook(PanicReason::OnStop, || {
+                actor.on_stop(actor_ref.clone(), reason.clone())
+            })
+            .await;
             while let Some(()) = notify_futs.next().await {}
 
             unregister_actor(&id).await;
@@ -216,7 +218,6 @@ where
                         .expect("nothing else should set the shutdown result");
                 }
                 Err(err) => {
-                    let err = PanicError::new(Box::new(err), PanicReason::OnStop);
                     invoke_actor_error_hook(&err);
 
                     actor_ref
@@ -254,6 +255,23 @@ where
             Err(err)
         }
     }
+}
+
+async fn catch_actor_hook<T, E, F>(
+    reason: PanicReason,
+    hook: impl FnOnce() -> F,
+) -> Result<T, PanicError>
+where
+    E: ReplyError,
+    F: Future<Output = Result<T, E>>,
+{
+    // Invoke the hook inside the caught future: an RPIT hook can panic before
+    // returning its future as well as while that future is polled.
+    AssertUnwindSafe(async { hook().await })
+        .catch_unwind()
+        .await
+        .map_err(|err| PanicError::new_from_panic_any(err, reason))?
+        .map_err(|err| PanicError::new(Box::new(err), reason))
 }
 
 async fn abortable_actor_loop<A>(

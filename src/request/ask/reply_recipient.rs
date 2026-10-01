@@ -105,4 +105,3 @@ where
             .ask(self.msg, self.mailbox_timeout.into())
     }
 }
-

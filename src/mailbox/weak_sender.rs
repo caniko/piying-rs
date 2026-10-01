@@ -6,12 +6,7 @@
 /// [`mpsc::WeakUnboundedSender`]: tokio::sync::mpsc::WeakUnboundedSender
 pub struct WeakMailboxSender<A: Actor> {
     inner: WeakMailboxSenderInner<A>,
-    #[cfg(feature = "metrics")]
-    messages_sent: metrics::Counter,
-    #[cfg(feature = "metrics")]
-    lifecycle_signals_sent: metrics::Counter,
-    #[cfg(feature = "metrics")]
-    link_died_signals_sent: metrics::Counter,
+    state: MailboxSenderState,
 }
 
 enum WeakMailboxSenderInner<A: Actor> {
@@ -31,26 +26,14 @@ impl<A: Actor> WeakMailboxSender<A> {
     /// [`mpsc::WeakSender::upgrade`]: tokio::sync::mpsc::WeakSender::upgrade
     /// [`mpsc::WeakUnboundedSender::upgrade`]: tokio::sync::mpsc::WeakUnboundedSender::upgrade
     pub fn upgrade(&self) -> Option<MailboxSender<A>> {
-        match &self.inner {
-            WeakMailboxSenderInner::Bounded(tx) => tx.upgrade().map(|tx| MailboxSender {
-                inner: MailboxSenderInner::Bounded(tx),
-                #[cfg(feature = "metrics")]
-                messages_sent: self.messages_sent.clone(),
-                #[cfg(feature = "metrics")]
-                lifecycle_signals_sent: self.lifecycle_signals_sent.clone(),
-                #[cfg(feature = "metrics")]
-                link_died_signals_sent: self.link_died_signals_sent.clone(),
-            }),
-            WeakMailboxSenderInner::Unbounded(tx) => tx.upgrade().map(|tx| MailboxSender {
-                inner: MailboxSenderInner::Unbounded(tx),
-                #[cfg(feature = "metrics")]
-                messages_sent: self.messages_sent.clone(),
-                #[cfg(feature = "metrics")]
-                lifecycle_signals_sent: self.lifecycle_signals_sent.clone(),
-                #[cfg(feature = "metrics")]
-                link_died_signals_sent: self.link_died_signals_sent.clone(),
-            }),
-        }
+        let inner = match &self.inner {
+            WeakMailboxSenderInner::Bounded(tx) => MailboxSenderInner::Bounded(tx.upgrade()?),
+            WeakMailboxSenderInner::Unbounded(tx) => MailboxSenderInner::Unbounded(tx.upgrade()?),
+        };
+        Some(MailboxSender {
+            inner,
+            state: self.state.clone(),
+        })
     }
 
     /// Returns the number of [`MailboxSender`] handles.
@@ -82,25 +65,13 @@ impl<A: Actor> WeakMailboxSender<A> {
 
 impl<A: Actor> Clone for WeakMailboxSender<A> {
     fn clone(&self) -> Self {
-        match &self.inner {
-            WeakMailboxSenderInner::Bounded(tx) => WeakMailboxSender {
-                inner: WeakMailboxSenderInner::Bounded(tx.clone()),
-                #[cfg(feature = "metrics")]
-                messages_sent: self.messages_sent.clone(),
-                #[cfg(feature = "metrics")]
-                lifecycle_signals_sent: self.lifecycle_signals_sent.clone(),
-                #[cfg(feature = "metrics")]
-                link_died_signals_sent: self.link_died_signals_sent.clone(),
-            },
-            WeakMailboxSenderInner::Unbounded(tx) => WeakMailboxSender {
-                inner: WeakMailboxSenderInner::Unbounded(tx.clone()),
-                #[cfg(feature = "metrics")]
-                messages_sent: self.messages_sent.clone(),
-                #[cfg(feature = "metrics")]
-                lifecycle_signals_sent: self.lifecycle_signals_sent.clone(),
-                #[cfg(feature = "metrics")]
-                link_died_signals_sent: self.link_died_signals_sent.clone(),
-            },
+        let inner = match &self.inner {
+            WeakMailboxSenderInner::Bounded(tx) => WeakMailboxSenderInner::Bounded(tx.clone()),
+            WeakMailboxSenderInner::Unbounded(tx) => WeakMailboxSenderInner::Unbounded(tx.clone()),
+        };
+        Self {
+            inner,
+            state: self.state.clone(),
         }
     }
 }
@@ -113,4 +84,3 @@ impl<A: Actor> fmt::Debug for WeakMailboxSender<A> {
         }
     }
 }
-

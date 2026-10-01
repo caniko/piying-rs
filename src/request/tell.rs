@@ -78,12 +78,7 @@ where
     where
         Tm: Into<Option<Duration>>,
     {
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: None,
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, None);
 
         let tx = self.actor_ref.mailbox_sender();
         if tx.capacity().is_some() {
@@ -112,12 +107,7 @@ where
     where
         Tm: Into<Option<Duration>>,
     {
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: None,
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, None);
 
         let tx = self.actor_ref.mailbox_sender().clone();
         if tx.capacity().is_some() {
@@ -147,24 +137,14 @@ where
 {
     /// Tries to send the message without waiting for mailbox capacity.
     pub fn try_send(self) -> Result<(), SendError<M>> {
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: None,
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, None);
 
         Ok(self.actor_ref.mailbox_sender().try_send(signal)?)
     }
 
     /// Sends the message in a blocking context.
     pub fn blocking_send(self) -> Result<(), SendError<M>> {
-        let signal = Signal::Message {
-            message: Box::new(self.msg),
-            actor_ref: self.actor_ref.clone(),
-            reply: None,
-            sent_within_actor: self.actor_ref.is_current(),
-        };
+        let signal = Signal::message(self.actor_ref, self.msg, None);
 
         let tx = self.actor_ref.mailbox_sender();
         if tx.capacity().is_some() {
