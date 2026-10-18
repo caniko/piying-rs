@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Update locked Rustls to 0.23.46 to resolve `RUSTSEC-2026-0346` through
+  `RUSTSEC-2026-0349` without audit exceptions.
+
 ## [0.2.0] - 2026-10-01
 
 ### Changed
