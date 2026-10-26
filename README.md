@@ -67,8 +67,8 @@ remain unchanged.
 
 ## Development
 
-Run `nix develop` for the pinned Rust tools, Just, and Simit 0.19.0 with the
-coordinated-release event-SHA fix. Then:
+Run `nix develop` for the pinned Rust tools, Just, and Simit 0.21.0
+(substituted from the public canix Attic cache). Then:
 
 ```sh
 just ci
@@ -89,9 +89,7 @@ Publishing requires the GitHub repository secret `CRATES_IO_API_TOKEN` and a
 signed version tag trusted by `keys/maintainers.gpg`. The workflow publishes
 `piying_macros`, then `piying`, then `piying_actors`.
 The signed tag must resolve to the immutable workflow event commit; a moved tag
-fails validation before any release gates or publication run. The temporary
-`nix/simit-release-event.patch` carries the generator fix until it is released
-upstream.
+fails validation before any release gates or publication run.
 
 ## License
 

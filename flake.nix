@@ -7,8 +7,12 @@
     nixpkgs.follows = "harbor-rs/nixpkgs";
     rust-overlay.follows = "harbor-rs/rust-overlay";
     crane.follows = "harbor-rs/crane";
-    simit.url = "github:caniko/simit/0.19.0";
-    simit.flake = false;
+    # No nixpkgs/rust-overlay/crane/harbor follows: the dev shell must reuse
+    # Simit's own derivation so it substitutes from the public canix Attic cache.
+    simit = {
+      url = "git+https://github.com/caniko/simit.git?ref=trunk&rev=9ffacf22c9b69385e370846ea55ce6226a26b8ad";
+      inputs.flake-utils.follows = "flake-utils";
+    };
     flake-utils.url = "github:numtide/flake-utils";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     git-hooks.url = "github:cachix/git-hooks.nix";
@@ -56,13 +60,7 @@
       };
       cargoArtifacts = buildCache.withRustCache {package = craneLib.buildDepsOnly commonArgs;};
       package = buildCache.withRustCache {package = craneLib.buildPackage (commonArgs // {inherit cargoArtifacts;});};
-      simitPackage = craneLib.buildPackage {
-        src = simit;
-        # Keep generated release workflows reproducible until Simit releases the
-        # event-SHA binding fix in its coordinated workspace publisher.
-        patches = [./nix/simit-release-event.patch];
-        doCheck = false;
-      };
+      simitPackage = simit.packages.${system}.default;
       treefmtEval = treefmt-nix.lib.evalModule pkgs (import ./nix/treefmt.nix {
         rustfmtPackage = pkgs.rust-bin.nightly.latest.default.override {
           extensions = ["rustfmt"];
