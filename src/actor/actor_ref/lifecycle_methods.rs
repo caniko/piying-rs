@@ -38,7 +38,7 @@ where
     /// Registers the actor under a given name in the actor registry.
     ///
     /// This makes the actor discoverable by parts of the app by name.
-    #[cfg(not(feature = "remote"))]
+    #[cfg(not(feature = "remote-registry"))]
     pub fn register(
         &self,
         name: impl Into<std::borrow::Cow<'static, str>>,
@@ -57,7 +57,7 @@ where
     /// Registers the actor under a given name within the actor swarm.
     ///
     /// This makes the actor discoverable by other nodes in the distributed system.
-    #[cfg(feature = "remote")]
+    #[cfg(feature = "remote-registry")]
     pub async fn register(&self, name: impl Into<Arc<str>>) -> Result<(), error::RegistryError>
     where
         A: remote::RemoteActor + 'static,
@@ -71,7 +71,7 @@ where
     /// Looks up an actor registered locally by its name.
     ///
     /// Returns `Some` if the actor exists, or `None` if no actor with the given name is registered.
-    #[cfg(not(feature = "remote"))]
+    #[cfg(not(feature = "remote-registry"))]
     pub fn lookup<Q>(name: &Q) -> Result<Option<Self>, error::RegistryError>
     where
         Q: std::hash::Hash + Eq + ?Sized,
@@ -83,7 +83,7 @@ where
     /// Looks up an actor registered locally by its name.
     ///
     /// Returns `Some` if the actor exists, or `None` if no actor with the given name is registered.
-    #[cfg(feature = "remote")]
+    #[cfg(feature = "remote-registry")]
     pub async fn lookup(name: impl Into<Arc<str>>) -> Result<Option<Self>, error::RegistryError>
     where
         A: remote::RemoteActor + 'static,

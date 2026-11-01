@@ -9,7 +9,7 @@ pub mod actor;
 pub mod error;
 pub mod mailbox;
 pub mod message;
-#[cfg(not(feature = "remote"))]
+#[cfg(not(feature = "remote-registry"))]
 pub mod registry;
 #[cfg(feature = "remote")]
 pub mod remote;

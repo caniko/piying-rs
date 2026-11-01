@@ -1,33 +1,37 @@
+#[cfg(feature = "remote-registry")]
+use std::task::Poll;
 use std::{
-    borrow::Cow,
-    cell::RefCell,
-    marker::PhantomData,
-    pin, str,
-    sync::Arc,
-    task::{self, Poll},
-    time::Duration,
+    borrow::Cow, cell::RefCell, marker::PhantomData, pin, str, sync::Arc, task, time::Duration,
 };
 
 use arc_swap::ArcSwapOption;
 
-use futures::{Future, FutureExt, Stream, StreamExt, ready};
+use futures::{Future, FutureExt, ready};
+#[cfg(feature = "remote-registry")]
+use futures::{Stream, StreamExt};
 use libp2p::PeerId;
 use tokio::sync::{mpsc, oneshot};
 
 use crate::{
     Actor,
-    actor::{ActorId, ActorRef, RemoteActorRef},
-    error::{ActorStopReason, Infallible, RegistryError, RemoteSendError},
+    actor::ActorId,
+    error::{ActorStopReason, Infallible, RemoteSendError},
+};
+#[cfg(feature = "remote-registry")]
+use crate::{
+    actor::{ActorRef, RemoteActorRef},
+    error::RegistryError,
 };
 
+#[cfg(feature = "remote-registry")]
 use super::{
-    DowncastRegsiteredActorRefError, REMOTE_REGISTRY, RemoteActor, RemoteRegistryActorRef,
-    messaging::SwarmResponse,
+    DowncastRegsiteredActorRefError, REMOTE_REGISTRY, RemoteRegistryActorRef,
     registry::{
         ActorRegistration, LookupLocalReply, LookupReply, LookupResult, RegisterReply,
         UnregisterReply,
     },
 };
+use super::{RemoteActor, messaging::SwarmResponse};
 
 static ACTOR_SWARM: ArcSwapOption<ActorSwarm> = ArcSwapOption::const_empty();
 
@@ -57,6 +61,7 @@ pub(crate) struct ActorSwarm {
 }
 
 include!("swarm/actor_swarm.rs");
+#[cfg(feature = "remote-registry")]
 include!("swarm/lookup_stream.rs");
 include!("swarm/commands.rs");
 include!("swarm/tests.rs");

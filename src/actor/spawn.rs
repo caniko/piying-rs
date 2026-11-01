@@ -396,13 +396,15 @@ async fn notify_links(
 
 #[allow(unused_variables)]
 async fn unregister_actor(id: &ActorId) {
-    #[cfg(not(feature = "remote"))]
+    #[cfg(not(feature = "remote-registry"))]
     crate::registry::ACTOR_REGISTRY
         .lock()
         .unwrap()
         .remove_by_id(id);
     #[cfg(feature = "remote")]
-    if let Some(entry) = remote::REMOTE_REGISTRY.lock().await.remove(id)
+    let entry = remote::REMOTE_REGISTRY.lock().await.remove(id);
+    #[cfg(feature = "remote-registry")]
+    if let Some(entry) = entry
         && let Some(registered_name) = entry.name
         && let Some(swarm) = remote::ActorSwarm::get()
     {

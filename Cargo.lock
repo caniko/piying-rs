@@ -2820,7 +2820,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "piying"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "arc-swap",
@@ -2849,7 +2849,7 @@ dependencies = [
 
 [[package]]
 name = "piying_actors"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "futures",
  "glob",
@@ -2861,7 +2861,7 @@ dependencies = [
 
 [[package]]
 name = "piying_macros"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "heck",
  "proc-macro2",

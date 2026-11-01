@@ -2,27 +2,32 @@
 //!
 //! The `remote` module in Piying provides tools for managing distributed actors across nodes,
 //! enabling actors to communicate seamlessly in a peer-to-peer (P2P) network. By leveraging
-//! the [libp2p](https://libp2p.io) library, Piying allows you to register actors under unique
-//! names and send messages between actors on different nodes as though they were local.
+//! the [libp2p](https://libp2p.io) library, Piying allows you to send messages between actors
+//! on different nodes as though they were local.
+//!
+//! ## Feature Layers
+//!
+//! - `remote`: messaging core (request-response). Bring your own libp2p swarm.
+//! - `remote-registry`: adds a Kademlia name registry (`register`/`lookup` across the network).
+//! - `remote-bootstrap`: adds `bootstrap()`/`bootstrap_on()` (mDNS, TCP, QUIC); implies
+//!   `remote-registry`.
 //!
 //! ## Key Features
 //!
 //! - **Composable Architecture**: The [`Behaviour`] struct implements libp2p's `NetworkBehaviour`,
 //!   allowing seamless integration with existing libp2p applications and other protocols.
-//! - **Quick Bootstrap**: The `bootstrap()` and `bootstrap_on()` functions provide one-line
-//!   setup for development and simple deployments.
 //! - **Custom Transport**: The [`run_swarm()`] function accepts a pre-built swarm with any
 //!   transport while handling the event loop for you.
-//! - **Actor Registration & Discovery**: Actors can be registered under unique names and looked up
-//!   across the network using [`RemoteActorRef`](crate::actor::RemoteActorRef).
-//! - **Reliable Messaging**: Ensures reliable message delivery between nodes using a combination
-//!   of Kademlia DHT for discovery and request-response protocols for communication.
-//! - **Modular Design**: Separate [`messaging`] and [`registry`] modules handle different aspects
-//!   of distributed actor communication.
+//! - **Reliable Messaging**: Request-response protocols deliver messages between nodes.
+//! - **Actor Registration & Discovery** (`remote-registry`): Actors can be registered under
+//!   unique names and looked up across the network using
+//!   [`RemoteActorRef`](crate::actor::RemoteActorRef), backed by a Kademlia DHT.
+//! - **Quick Bootstrap** (`remote-bootstrap`): The `bootstrap()` and `bootstrap_on()` functions
+//!   provide one-line setup for development and simple deployments.
 //!
 //! ## Getting Started
 //!
-//! For quick prototyping and development:
+//! For quick prototyping and development (requires `remote-bootstrap`):
 //!
 //! ```ignore
 //! use piying::remote;
@@ -62,17 +67,23 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
+#[cfg(all(
+    feature = "remote-bootstrap",
+    feature = "serde-codec",
+    not(feature = "rkyv-codec")
+))]
 use std::error;
 
 use futures::StreamExt;
 use libp2p::{PeerId, Swarm, swarm::NetworkBehaviour};
 use tokio::sync::Mutex;
 
+#[cfg(feature = "remote-registry")]
+use crate::error::RegistryError;
 use crate::{
     Actor,
     actor::{ActorId, ActorRef, Links, WeakActorRef},
-    error::{RegistryError, RemoteSendError},
+    error::RemoteSendError,
     mailbox::SignalMailbox,
 };
 
@@ -85,6 +96,7 @@ mod behaviour;
 pub mod codec;
 #[allow(missing_docs)] // rkyv::Archive derive generates undocumented archived types
 pub mod messaging;
+#[cfg(feature = "remote-registry")]
 pub mod registry;
 pub mod session;
 mod swarm;
@@ -116,6 +128,7 @@ pub fn unregister_actor_local(id: &ActorId) -> bool {
 
 pub(crate) struct RemoteRegistryActorRef {
     actor_ref: BoxRegisteredActorRef,
+    #[cfg_attr(not(feature = "remote-registry"), allow(dead_code))]
     pub(crate) name: Option<Arc<str>>,
     pub(crate) signal_mailbox: Box<dyn SignalMailbox>,
     pub(crate) links: Links,
@@ -228,7 +241,7 @@ pub trait RemoteMessage<M> {
 /// - mDNS peer discovery (local network only)
 /// - Automatic listening on an OS-assigned port
 ///
-/// Requires the `serde-codec` feature (uses CBOR for transport encoding).
+/// Requires the `remote-bootstrap` and `serde-codec` features (uses CBOR for transport encoding).
 ///
 /// For production use or custom configuration, use `piying::remote::Behaviour`
 /// with your own libp2p swarm setup.
@@ -246,15 +259,25 @@ pub trait RemoteMessage<M> {
 ///     Ok(())
 /// }
 /// ```
-#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
+#[cfg(all(
+    feature = "remote-bootstrap",
+    feature = "serde-codec",
+    not(feature = "rkyv-codec")
+))]
 pub fn bootstrap() -> Result<PeerId, Box<dyn error::Error>> {
     bootstrap_on("/ip4/0.0.0.0/tcp/0")
 }
 
 /// Bootstrap with a specific listen address.
 ///
-/// Requires the `serde-codec` feature.
-#[cfg(all(feature = "serde-codec", not(feature = "rkyv-codec")))]
+/// Requires the `remote-bootstrap` and `serde-codec` features.
+#[cfg(all(
+    feature = "remote-bootstrap",
+    feature = "serde-codec",
+    not(feature = "rkyv-codec")
+))]
+// mdns handlers emit `Infallible`, which makes derive-generated match arms unreachable.
+#[allow(unreachable_code)]
 pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
     use libp2p::{SwarmBuilder, mdns, noise, swarm::SwarmEvent, tcp, yamux};
 
@@ -442,6 +465,7 @@ pub fn is_registered_locally(actor_id: ActorId) -> bool {
 /// Unregisters an actor within the swarm.
 ///
 /// This will only unregister an actor previously registered by the current node.
+#[cfg(feature = "remote-registry")]
 pub async fn unregister(name: impl Into<Arc<str>>) -> Result<(), RegistryError> {
     ActorSwarm::get()
         .ok_or(RegistryError::SwarmNotBootstrapped)?

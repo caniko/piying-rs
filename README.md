@@ -27,12 +27,25 @@ Add Piying to your Cargo dependencies:
 
 ```toml
 [dependencies]
-piying = "0.2"
+piying = "0.3"
 ```
 
 The default features enable actor macros and tracing. Optional remote networking
-uses the `remote` feature with `serde-codec` or `rkyv-codec`.
+is layered, and needs `serde-codec` or `rkyv-codec`:
+
+- `remote`: messaging core (request-response, `remote::Behaviour`, `#[remote_message]`).
+  Bring your own libp2p swarm. No Kademlia, mDNS or transports are compiled in.
+- `remote-registry`: adds Kademlia name `register`/`lookup` across the network.
+- `remote-bootstrap`: adds `remote::bootstrap()` (mDNS, TCP, QUIC); implies `remote-registry`.
+
 See the [API documentation](https://docs.rs/piying) for actor and messaging examples.
+
+## Migrating to 0.3.0
+
+`remote` is now messaging-only. Replace `remote` with `remote-bootstrap` to keep the
+previous behaviour, or `remote-registry` if you build your own swarm but still use
+Kademlia name lookup. Without `remote-registry`, `ActorRef::register` and
+`ActorRef::lookup` are the synchronous in-process versions.
 
 ## Migrating to 0.2.0
 
@@ -50,7 +63,7 @@ keep the larger upstream address collection out of every remote event. Borrowed
 access works through dereferencing; use `*addresses` when moving the collection
 into code that expects an owned `kad::Addresses`.
 
-The remote feature requires `hickory-proto` 0.26.3 or later in the 0.26 series to
+The `remote-bootstrap` feature requires `hickory-proto` 0.26.3 or later in the 0.26 series to
 resolve `RUSTSEC-2026-0118` and `RUSTSEC-2026-0119`. The existing rkyv framing helpers
 remain supplied by `libp2p-rkyv-codec 0.3`; Piying implements the libp2p 0.57
 codec itself. Remote protocol identifiers and the `THSP` version-2 rkyv framing

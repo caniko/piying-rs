@@ -65,6 +65,7 @@ impl ActorSwarm {
     }
 
     /// Looks up an actor running locally.
+    #[cfg(feature = "remote-registry")]
     pub(crate) fn lookup_local<A: Actor + RemoteActor + 'static>(
         &self,
         name: Arc<str>,
@@ -100,6 +101,7 @@ impl ActorSwarm {
     }
 
     /// Looks up an actor in the swarm.
+    #[cfg(feature = "remote-registry")]
     pub(crate) async fn lookup<A: Actor + RemoteActor>(
         &self,
         name: Arc<str>,
@@ -126,6 +128,7 @@ impl ActorSwarm {
     }
 
     /// Looks up all actors with a given name in the swarm.
+    #[cfg(feature = "remote-registry")]
     pub(crate) fn lookup_all<A: Actor + RemoteActor>(&self, name: Arc<str>) -> LookupStream<A> {
         let (reply_tx, reply_rx) = mpsc::unbounded_channel();
         let cmd = SwarmCommand::Lookup {
@@ -139,6 +142,7 @@ impl ActorSwarm {
     }
 
     /// Registers an actor within the swarm.
+    #[cfg(feature = "remote-registry")]
     pub(crate) fn register<A: Actor + RemoteActor + 'static>(
         &self,
         actor_ref: ActorRef<A>,
@@ -174,6 +178,7 @@ impl ActorSwarm {
     ///
     /// The future returned by unregister does not have to be awaited.
     /// Awaiting it is only necessary to handle the result.
+    #[cfg(feature = "remote-registry")]
     pub fn unregister(&self, name: Arc<str>) -> impl Future<Output = ()> {
         let reply_rx = self
             .swarm_tx

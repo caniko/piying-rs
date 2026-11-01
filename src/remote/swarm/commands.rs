@@ -40,6 +40,7 @@ impl SwarmSender {
 #[derive(Debug)]
 pub(crate) enum SwarmCommand {
     /// Lookup providers for an actor by name in the kademlia network.
+    #[cfg(feature = "remote-registry")]
     Lookup {
         /// Registered name.
         name: Arc<str>,
@@ -47,6 +48,7 @@ pub(crate) enum SwarmCommand {
         reply: LookupReply,
     },
     /// Lookup an actor by name on the local node only.
+    #[cfg(feature = "remote-registry")]
     LookupLocal {
         /// Actor name.
         name: Arc<str>,
@@ -54,6 +56,7 @@ pub(crate) enum SwarmCommand {
         reply: LookupLocalReply,
     },
     /// Register an actor under a name.
+    #[cfg(feature = "remote-registry")]
     Register {
         /// Actor name.
         name: Arc<str>,
@@ -63,6 +66,7 @@ pub(crate) enum SwarmCommand {
         reply: RegisterReply,
     },
     /// Stop providing a key.
+    #[cfg(feature = "remote-registry")]
     Unregister {
         /// Actor name.
         name: Arc<str>,

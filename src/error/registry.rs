@@ -9,22 +9,22 @@ pub enum RegistryError {
     /// An actor has already been registered under the name.
     NameAlreadyRegistered,
     /// Quorum failed.
-    #[cfg(feature = "remote")]
+    #[cfg(feature = "remote-registry")]
     QuorumFailed {
         /// Required quorum.
         quorum: std::num::NonZero<usize>,
     },
     /// Timeout.
-    #[cfg(feature = "remote")]
+    #[cfg(feature = "remote-registry")]
     Timeout,
     /// Storing the record failed.
-    #[cfg(feature = "remote")]
+    #[cfg(feature = "remote-registry")]
     Store(libp2p::kad::store::Error),
     /// Invalid actor registration.
-    #[cfg(feature = "remote")]
+    #[cfg(feature = "remote-registry")]
     InvalidActorRegistration(crate::remote::registry::InvalidActorRegistration),
     /// Get providers error.
-    #[cfg(feature = "remote")]
+    #[cfg(feature = "remote-registry")]
     GetProviders(libp2p::kad::GetProvidersError),
 }
 
@@ -35,17 +35,17 @@ impl fmt::Display for RegistryError {
             RegistryError::SwarmNotBootstrapped => write!(f, "actor swarm not bootstrapped"),
             RegistryError::NameAlreadyRegistered => write!(f, "name already registered"),
             RegistryError::BadActorType => write!(f, "bad actor type"),
-            #[cfg(feature = "remote")]
+            #[cfg(feature = "remote-registry")]
             RegistryError::QuorumFailed { quorum } => {
                 write!(f, "the quorum failed; needed {quorum} peers")
             }
-            #[cfg(feature = "remote")]
+            #[cfg(feature = "remote-registry")]
             RegistryError::Timeout => write!(f, "the request timed out"),
-            #[cfg(feature = "remote")]
+            #[cfg(feature = "remote-registry")]
             RegistryError::Store(err) => err.fmt(f),
-            #[cfg(feature = "remote")]
+            #[cfg(feature = "remote-registry")]
             RegistryError::InvalidActorRegistration(err) => err.fmt(f),
-            #[cfg(feature = "remote")]
+            #[cfg(feature = "remote-registry")]
             RegistryError::GetProviders(err) => err.fmt(f),
         }
     }
@@ -53,21 +53,21 @@ impl fmt::Display for RegistryError {
 
 impl error::Error for RegistryError {}
 
-#[cfg(feature = "remote")]
+#[cfg(feature = "remote-registry")]
 impl From<crate::remote::registry::InvalidActorRegistration> for RegistryError {
     fn from(err: crate::remote::registry::InvalidActorRegistration) -> Self {
         RegistryError::InvalidActorRegistration(err)
     }
 }
 
-#[cfg(feature = "remote")]
+#[cfg(feature = "remote-registry")]
 impl From<libp2p::kad::store::Error> for RegistryError {
     fn from(err: libp2p::kad::store::Error) -> Self {
         RegistryError::Store(err)
     }
 }
 
-#[cfg(feature = "remote")]
+#[cfg(feature = "remote-registry")]
 impl From<libp2p::kad::AddProviderError> for RegistryError {
     fn from(err: libp2p::kad::AddProviderError) -> Self {
         match err {
@@ -76,7 +76,7 @@ impl From<libp2p::kad::AddProviderError> for RegistryError {
     }
 }
 
-#[cfg(feature = "remote")]
+#[cfg(feature = "remote-registry")]
 impl From<libp2p::kad::PutRecordError> for RegistryError {
     fn from(err: libp2p::kad::PutRecordError) -> Self {
         match err {
@@ -88,7 +88,7 @@ impl From<libp2p::kad::PutRecordError> for RegistryError {
     }
 }
 
-#[cfg(feature = "remote")]
+#[cfg(feature = "remote-registry")]
 impl From<libp2p::kad::GetProvidersError> for RegistryError {
     fn from(err: libp2p::kad::GetProvidersError) -> Self {
         RegistryError::GetProviders(err)

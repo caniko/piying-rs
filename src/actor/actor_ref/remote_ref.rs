@@ -69,6 +69,7 @@ where
     /// Use [`lookup_all`] when multiple actors might exist and you need deterministic behavior.
     ///
     /// [`lookup_all`]: Self::lookup_all
+    #[cfg(feature = "remote-registry")]
     pub async fn lookup(name: impl Into<Arc<str>>) -> Result<Option<Self>, error::RegistryError>
     where
         A: remote::RemoteActor + 'static,
@@ -86,6 +87,7 @@ where
     ///
     /// Use this when multiple actors may be registered under the same name
     /// and you need to handle all of them or make deterministic choices.
+    #[cfg(feature = "remote-registry")]
     pub fn lookup_all(name: impl Into<Arc<str>>) -> remote::LookupStream<A>
     where
         A: remote::RemoteActor + 'static,
@@ -235,8 +237,8 @@ where
     /// # struct ActorB;
     /// #
     /// # tokio_test::block_on(async {
-    /// let actor_a = RemoteActorRef::<ActorA>::lookup("actor_a").await?.unwrap();
-    /// let actor_b = RemoteActorRef::<ActorB>::lookup("actor_b").await?.unwrap();
+    /// let actor_a = RemoteActorRef::<ActorA>::for_peer(libp2p::PeerId::random()).unwrap();
+    /// let actor_b = RemoteActorRef::<ActorB>::for_peer(libp2p::PeerId::random()).unwrap();
     ///
     /// actor_a.unlink_remote(&actor_b).await?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -278,8 +280,8 @@ where
     /// # struct ActorB;
     /// #
     /// # tokio_test::block_on(async {
-    /// let actor_a = RemoteActorRef::<ActorA>::lookup("actor_a").await?.unwrap();
-    /// let actor_b = RemoteActorRef::<ActorB>::lookup("actor_b").await?.unwrap();
+    /// let actor_a = RemoteActorRef::<ActorA>::for_peer(libp2p::PeerId::random()).unwrap();
+    /// let actor_b = RemoteActorRef::<ActorB>::for_peer(libp2p::PeerId::random()).unwrap();
     ///
     /// actor_a.unlink_remote(&actor_b).await?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
