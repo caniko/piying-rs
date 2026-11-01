@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-01
+
 ### Breaking
 
 - The `remote` feature is now messaging-only: request-response messaging,
@@ -113,7 +115,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Typo in `pubsub.rs` doc comment ("bessage" → "message").
 - Typo in `trait_def.rs` doc comment ("unwraped" → "unwrapped").
 
-[Unreleased]: https://github.com/caniko/piying-rs/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/caniko/piying-rs/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/caniko/piying-rs/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/caniko/piying-rs/compare/0.1.1...0.2.0
 [0.1.1]: https://github.com/caniko/piying-rs/releases/tag/0.1.1
 [0.1.0]: https://github.com/caniko/piying-rs/releases/tag/0.1.0
