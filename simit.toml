@@ -3,6 +3,7 @@ scope = "hooks-only"
 
 [ci]
 platform = "github"
+push_branches = ["trunk"]
 provider = "actions"
 runner = "ubuntu-latest"
 workspace = true
