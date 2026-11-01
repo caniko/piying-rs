@@ -3,8 +3,8 @@ resolver = "2"
 members = [".", "actors", "macros"]
 
 [workspace.dependencies]
-piying = { path = ".", version = "0.2.0" }
-piying_macros = { path = "macros", version = "0.2.0" }
+piying = { path = ".", version = "0.3.0" }
+piying_macros = { path = "macros", version = "0.3.0" }
 
 futures = "0.3"
 tokio = "1.47"
@@ -19,7 +19,7 @@ all-features = true
 
 [package]
 name = "piying"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.88.0"
 description = "Fault-tolerant Async Actors Built on Tokio"
@@ -41,13 +41,19 @@ include = [
 [features]
 default = ["macros", "tracing"]
 macros = ["dep:piying_macros"]
-remote = [
-  "dep:const-fnv1a-hash",
-  "dep:const-str",
-  "dep:either",
+# Messaging core: request-response only. Bring your own libp2p swarm.
+remote = ["dep:const-fnv1a-hash", "dep:const-str", "dep:libp2p", "dep:linkme"]
+# Kademlia name register/lookup on top of `remote`.
+remote-registry = ["remote", "libp2p/kad", "dep:either"]
+# `remote::bootstrap()` (mDNS + TCP + QUIC) on top of `remote-registry`.
+remote-bootstrap = [
+  "remote-registry",
+  "libp2p/mdns",
+  "libp2p/tcp",
+  "libp2p/quic",
+  "libp2p/noise",
+  "libp2p/yamux",
   "dep:hickory-proto",
-  "dep:libp2p",
-  "dep:linkme",
 ]
 rkyv = ["dep:rkyv"]
 rkyv-codec = ["rkyv", "dep:libp2p-rkyv-codec"]
@@ -78,16 +84,9 @@ futures.workspace = true
 hickory-proto = { version = "0.26.3", default-features = false, optional = true }
 hotpath = { version = "0.11", optional = true, features = ["tokio"] }
 libp2p = { version = "0.57.0", features = [
-  "kad",
   "macros",
-  "mdns",
-  "noise",
-  "quic",
   "request-response",
-  "tcp",
   "tokio",
-  "yamux",
-  "mdns",
 ], optional = true }
 linkme = { version = "0.3.28", optional = true }
 metrics = { version = "0.24.2", optional = true }

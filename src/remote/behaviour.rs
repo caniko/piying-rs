@@ -1,23 +1,26 @@
 use std::task;
 
+#[cfg(feature = "remote-registry")]
 use either::Either;
 use futures::{StreamExt, stream::FuturesUnordered};
+#[cfg(feature = "remote-registry")]
+use libp2p::swarm::{ConnectionHandler, ConnectionHandlerSelect};
 use libp2p::{
     Multiaddr, PeerId,
     core::{Endpoint, transport::PortUse},
     swarm::{
-        ConnectionClosed, ConnectionDenied, ConnectionHandler, ConnectionHandlerSelect,
-        ConnectionId, FromSwarm, NetworkBehaviour, THandler, THandlerInEvent, THandlerOutEvent,
-        ToSwarm,
+        ConnectionClosed, ConnectionDenied, ConnectionId, FromSwarm, NetworkBehaviour, THandler,
+        THandlerInEvent, THandlerOutEvent, ToSwarm,
     },
 };
 use tokio::sync::mpsc;
 
 use crate::error::{ActorStopReason, SwarmAlreadyBootstrappedError};
 
+#[cfg(feature = "remote-registry")]
+use super::registry;
 use super::{
     ActorSwarm, REMOTE_REGISTRY, RemoteRegistryActorRef, SwarmCommand, SwarmSender, messaging,
-    registry,
 };
 
 /// A network behaviour that combines messaging and registry capabilities for remote actor communication.
@@ -54,6 +57,7 @@ pub struct Behaviour<
     /// Messaging behaviour for sending and receiving actor messages.
     pub messaging: messaging::Behaviour<C>,
     /// Registry behaviour for actor registration and discovery.
+    #[cfg(feature = "remote-registry")]
     pub registry: registry::Behaviour,
     local_peer_id: PeerId,
     cmd_tx: mpsc::UnboundedSender<SwarmCommand>,
@@ -70,6 +74,7 @@ pub struct Behaviour<C: libp2p::request_response::Codec + Clone + Send + 'static
     /// Messaging behaviour for sending and receiving actor messages.
     pub messaging: messaging::Behaviour<C>,
     /// Registry behaviour for actor registration and discovery.
+    #[cfg(feature = "remote-registry")]
     pub registry: registry::Behaviour,
     local_peer_id: PeerId,
     cmd_tx: mpsc::UnboundedSender<SwarmCommand>,
@@ -99,10 +104,12 @@ impl Behaviour<messaging::DefaultCodec> {
         let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
 
         let messaging = messaging::Behaviour::new(local_peer_id, messaging_config);
+        #[cfg(feature = "remote-registry")]
         let registry = registry::Behaviour::new(local_peer_id);
 
         Behaviour {
             messaging,
+            #[cfg(feature = "remote-registry")]
             registry,
             local_peer_id,
             cmd_tx,
@@ -130,10 +137,12 @@ where
         let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
 
         let messaging = messaging::Behaviour::with_codec(local_peer_id, messaging_config, codec);
+        #[cfg(feature = "remote-registry")]
         let registry = registry::Behaviour::new(local_peer_id);
 
         Behaviour {
             messaging,
+            #[cfg(feature = "remote-registry")]
             registry,
             local_peer_id,
             cmd_tx,
@@ -164,14 +173,17 @@ where
 
     fn handle_command(&mut self, cmd: SwarmCommand) -> bool {
         match cmd {
+            #[cfg(feature = "remote-registry")]
             SwarmCommand::Lookup { name, reply } => {
                 self.registry.lookup_with_reply(name, Some(reply));
                 true // We triggered a get_providers on kad, we need to call the waker
             }
+            #[cfg(feature = "remote-registry")]
             SwarmCommand::LookupLocal { name, reply } => {
                 let _ = reply.send(self.registry.lookup_local(&name));
                 false // Local lookups don't need to be polled again
             }
+            #[cfg(feature = "remote-registry")]
             SwarmCommand::Register {
                 name,
                 registration,
@@ -187,6 +199,7 @@ where
                 }
                 Err((None, _)) => unreachable!("we should have the reply type here"),
             },
+            #[cfg(feature = "remote-registry")]
             SwarmCommand::Unregister { name, reply } => {
                 self.registry.unregister(&name);
                 let _ = reply.send(());

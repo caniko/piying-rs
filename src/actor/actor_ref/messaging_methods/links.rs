@@ -97,7 +97,7 @@ where
     /// #
     /// # tokio_test::block_on(async {
     /// let actor_ref = MyActor::spawn(MyActor);
-    /// let sibling_ref = RemoteActorRef::<OtherActor>::lookup("other_actor").await?.unwrap();
+    /// let sibling_ref = RemoteActorRef::<OtherActor>::for_peer(libp2p::PeerId::random()).ok_or("swarm not bootstrapped")?;
     ///
     /// actor_ref.link_remote(&sibling_ref).await?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -209,7 +209,7 @@ where
     /// #
     /// # tokio_test::block_on(async {
     /// let actor_ref = MyActor::spawn(MyActor);
-    /// let sibling_ref = RemoteActorRef::<OtherActor>::lookup("other_actor").await?.unwrap();
+    /// let sibling_ref = RemoteActorRef::<OtherActor>::for_peer(libp2p::PeerId::random()).ok_or("swarm not bootstrapped")?;
     ///
     /// actor_ref.unlink_remote(&sibling_ref).await?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())

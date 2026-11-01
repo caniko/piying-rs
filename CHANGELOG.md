@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+
+- The `remote` feature is now messaging-only: request-response messaging,
+  `remote::Behaviour`, `SwarmSender`, `RemoteActorRef::for_peer_with_sender`,
+  `#[remote_message]` and `#[derive(RemoteActor)]`. Kademlia, mDNS, TCP, QUIC,
+  noise, yamux and `hickory-proto` are no longer pulled in by `remote`.
+- The previous `remote` feature is now `remote-bootstrap`; replace `remote` with
+  `remote-bootstrap` to keep the old behaviour.
+- New `remote-registry` feature (implies `remote`) enables the Kademlia name
+  registry: `remote::registry`, `remote::unregister`, `RemoteActorRef::lookup`
+  and `lookup_all`, `remote::Event::Registry`, the `registry` field of
+  `remote::Behaviour`, and the kad `RegistryError` variants.
+- New `remote-bootstrap` feature (implies `remote-registry`) enables
+  `remote::bootstrap()` and `remote::bootstrap_on()`.
+- With `remote` alone, `ActorRef::register` and `ActorRef::lookup` are the
+  synchronous in-process registry versions; they become async network calls once
+  `remote-registry` is enabled.
+- Bumped `piying`, `piying_macros` and `piying_actors` to 0.3.0.
+
 ### Security
 
 - Update locked Rustls to 0.23.46 to resolve `RUSTSEC-2026-0346` through

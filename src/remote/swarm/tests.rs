@@ -32,6 +32,7 @@ mod tests {
         assert_eq!(pid, swarm.local_peer_id());
     }
 
+    #[cfg(feature = "remote-registry")]
     #[test]
     fn sender_returns_functional_handle() {
         let (swarm, mut rx) = make_swarm();
@@ -47,6 +48,7 @@ mod tests {
         assert!(matches!(cmd, SwarmCommand::Unregister { .. }));
     }
 
+    #[cfg(feature = "remote-registry")]
     #[test]
     fn cloned_sender_delivers_commands() {
         let (tx, mut rx) = mpsc::unbounded_channel();
