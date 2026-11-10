@@ -24,9 +24,8 @@ actor semantics people already know.
 - **Open contribution, including AI-assisted code.** Upstream refuses
   AI-generated contributions; this fork has no such restriction, and the README
   says so plainly.
-- **Track upstream, diverge deliberately.** The fork is described as syncing
-  selected Kameo updates, so deviations should stay explainable as production
-  needs rather than taste.
+- **Track upstream, diverge deliberately.** The fork started from Kameo 0.21.0,
+  so deviations should stay explainable as production needs rather than taste.
 - **Minimal features must actually compile.** Library-only gates check no
   features and macros-only so dev-dependency feature unification cannot mask a
   missing guard.
