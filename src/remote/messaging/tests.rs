@@ -174,3 +174,119 @@ mod rkyv_tests {
         }
     }
 }
+
+#[cfg(test)]
+#[cfg(feature = "rkyv-codec")]
+mod pending_cap_tests {
+    use std::task::Poll;
+
+    use libp2p::{PeerId, swarm::NetworkBehaviour};
+    use tokio::sync::oneshot;
+
+    use super::{Behaviour, Config, SwarmResponse};
+    use crate::actor::ActorId;
+    use crate::remote::codec::PiyingRkyvCodec;
+    use crate::remote::wire::WireRemoteSendError;
+
+    #[tokio::test]
+    async fn tell_past_pending_limit_fails_fast() {
+        let config = Config::default().with_max_pending_requests(1);
+        let mut behaviour =
+            Behaviour::with_codec(PeerId::random(), config, PiyingRkyvCodec::new(&config));
+        let remote = ActorId::new_with_peer_id(1, PeerId::random());
+        let mut tell = |reply| {
+            behaviour.tell_with_reply(remote, "a".into(), "m".into(), vec![], None, true, reply)
+        };
+
+        assert!(tell(None).is_some(), "first request is queued for the peer");
+        let (tx, mut rx) = oneshot::channel();
+        tell(Some(tx));
+        assert_eq!(
+            behaviour.requests.len(),
+            1,
+            "rejected request must not be tracked"
+        );
+
+        for _ in 0..100 {
+            futures::future::poll_fn(|cx| {
+                let _ = behaviour.poll(cx);
+                Poll::Ready(())
+            })
+            .await;
+            if let Ok(response) = rx.try_recv() {
+                assert!(matches!(
+                    response,
+                    SwarmResponse::Tell(Err(WireRemoteSendError::MailboxFull))
+                ));
+                return;
+            }
+            tokio::task::yield_now().await;
+        }
+        panic!("rejected tell never got a reply");
+    }
+
+    #[tokio::test]
+    async fn dial_failure_clears_only_requests_libp2p_dropped() {
+        use libp2p::swarm::{
+            ConnectionId, DialError, FromSwarm, behaviour::DialFailure, dial_opts::PeerCondition,
+        };
+
+        let config = Config::default();
+        let mut behaviour =
+            Behaviour::with_codec(PeerId::random(), config, PiyingRkyvCodec::new(&config));
+        let target = PeerId::random();
+        let remote = ActorId::new_with_peer_id(1, target);
+        behaviour.tell_with_reply(remote, "a".into(), "m".into(), vec![], None, true, None);
+
+        let mut fail_and_drain = |error: &DialError| {
+            behaviour.on_swarm_event(FromSwarm::DialFailure(DialFailure {
+                peer_id: Some(target),
+                error,
+                connection_id: ConnectionId::new_unchecked(0),
+            }));
+            let waker = futures::task::noop_waker();
+            let mut cx = std::task::Context::from_waker(&waker);
+            for _ in 0..10 {
+                let _ = behaviour.poll(&mut cx);
+            }
+            behaviour.requests.len()
+        };
+        // libp2p keeps the request queued, so it must keep counting toward the cap.
+        let redundant = DialError::DialPeerConditionFalse(PeerCondition::DisconnectedAndNotDialing);
+        assert_eq!(fail_and_drain(&redundant), 1);
+        // A real dial failure drops it in libp2p, which reports OutboundFailure.
+        assert_eq!(fail_and_drain(&DialError::Aborted), 0);
+    }
+
+    #[tokio::test]
+    async fn rejected_event_names_the_destination_peer() {
+        let config = Config::default().with_max_pending_requests(0);
+        let mut behaviour =
+            Behaviour::with_codec(PeerId::random(), config, PiyingRkyvCodec::new(&config));
+        let target = PeerId::random();
+        let remote = ActorId::new_with_peer_id(1, target);
+        let request_id = behaviour
+            .tell_with_reply(remote, "a".into(), "m".into(), vec![], None, true, None)
+            .expect("event-reply requests get an id");
+
+        for _ in 0..100 {
+            let polled = futures::future::poll_fn(|cx| Poll::Ready(behaviour.poll(cx))).await;
+            if let Poll::Ready(libp2p::swarm::ToSwarm::GenerateEvent(event)) = polled {
+                let super::Event::TellResult {
+                    peer,
+                    request_id: id,
+                    result,
+                    ..
+                } = event
+                else {
+                    panic!("expected TellResult");
+                };
+                assert_eq!((peer, id), (target, request_id));
+                assert!(result.is_err());
+                return;
+            }
+            tokio::task::yield_now().await;
+        }
+        panic!("rejected tell never produced an event");
+    }
+}

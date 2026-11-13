@@ -3,6 +3,7 @@
 pub struct Config {
     request_timeout: Duration,
     max_concurrent_streams: usize,
+    max_pending_requests: usize,
     request_size_maximum: u64,
     response_size_maximum: u64,
 }
@@ -12,6 +13,7 @@ impl Default for Config {
         Self {
             request_timeout: Duration::from_secs(10),
             max_concurrent_streams: 1024,
+            max_pending_requests: 4096,
             request_size_maximum: 1024 * 1024,
             response_size_maximum: 10 * 1024 * 1024,
         }
@@ -28,6 +30,15 @@ impl Config {
     /// Sets the upper bound for the number of concurrent inbound + outbound streams.
     pub fn with_max_concurrent_streams(mut self, num_streams: usize) -> Self {
         self.max_concurrent_streams = num_streams;
+        self
+    }
+
+    /// Sets the upper bound for outbound requests awaiting a response.
+    ///
+    /// Requests past the limit fail at once with `MailboxFull` instead of
+    /// queueing without bound behind a slow or flooded peer.
+    pub fn with_max_pending_requests(mut self, max: usize) -> Self {
+        self.max_pending_requests = max;
         self
     }
 
@@ -90,6 +101,7 @@ pub struct Behaviour<C: request_response::Codec + Clone + Send + 'static = Defau
     local_peer_id: PeerId,
     next_id: u64,
     requests: HashMap<RequestId, RequestContext>,
+    max_pending_requests: usize,
     join_set: JoinSet<(ReplyChannel, SwarmResponse)>,
 }
 
@@ -105,11 +117,11 @@ pub struct Behaviour<C: request_response::Codec + Clone + Send + 'static> {
     local_peer_id: PeerId,
     next_id: u64,
     requests: HashMap<RequestId, RequestContext>,
+    max_pending_requests: usize,
     join_set: JoinSet<(ReplyChannel, SwarmResponse)>,
 }
 
 struct RequestContext {
-    peer_id: PeerId,
     summary: String,
     reply: Option<oneshot::Sender<SwarmResponse>>,
 }
@@ -172,28 +184,10 @@ where
     }
 
     fn on_swarm_event(&mut self, event: FromSwarm<'_>) {
-        if let FromSwarm::DialFailure(DialFailure {
-            peer_id: Some(peer_id),
-            ..
-        }) = event
-        {
-            // Remove requests for this peer id
-            let dead_requests = self
-                .requests
-                .extract_if(|_, context| context.peer_id == peer_id);
-            for (request_id, context) in dead_requests {
-                #[cfg(not(feature = "tracing"))]
-                let _ = request_id;
-                #[cfg(feature = "tracing")]
-                tracing::warn!(%peer_id, %request_id, summary = %context.summary, "piying dial failure for pending request");
-                if let Some(tx) = context.reply {
-                    let _ = tx.send(SwarmResponse::OutboundFailure(
-                        WireRemoteSendError::DialFailure,
-                    ));
-                }
-            }
-        }
-
+        // No dial-failure sweep here: request-response emits `OutboundFailure`
+        // for exactly the requests a failed dial dropped, and that handler
+        // clears their contexts. Sweeping every request to the peer also
+        // dropped ones still queued or in flight on another connection.
         self.request_response.on_swarm_event(event)
     }
 
@@ -216,10 +210,10 @@ where
             match self.join_set.poll_join_next(cx) {
                 task::Poll::Ready(Some(Ok((ch, res)))) => {
                     match ch {
-                        ReplyChannel::Event(request_id) => {
+                        ReplyChannel::Event(request_id, peer) => {
                             // We have an event to return immediately
                             return task::Poll::Ready(ToSwarm::GenerateEvent(
-                                Event::from_swarm_resp(res, self.local_peer_id, None, request_id),
+                                Event::from_swarm_resp(res, peer, None, request_id),
                             ));
                         }
                         ReplyChannel::Local(tx) => {
@@ -280,14 +274,9 @@ where
                     // (in case something completed while we were processing request_response events)
                     match self.join_set.poll_join_next(cx) {
                         task::Poll::Ready(Some(Ok((ch, res)))) => match ch {
-                            ReplyChannel::Event(request_id) => {
+                            ReplyChannel::Event(request_id, peer) => {
                                 return task::Poll::Ready(ToSwarm::GenerateEvent(
-                                    Event::from_swarm_resp(
-                                        res,
-                                        self.local_peer_id,
-                                        None,
-                                        request_id,
-                                    ),
+                                    Event::from_swarm_resp(res, peer, None, request_id),
                                 ));
                             }
                             ReplyChannel::Local(tx) => {
