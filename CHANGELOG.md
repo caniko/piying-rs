@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Bounded outbound remote requests. A sender that outpaces a stalled peer used
+  to grow `remote::Behaviour`'s request map and libp2p's outbound queue without
+  limit; requests past `Config::with_max_pending_requests` (default 4096) now
+  fail at once with `RemoteSendError::MailboxFull`. A rejected request without
+  a reply sender reports the peer it was addressed to. (Backported as 0.1.2.)
+- A failed dial no longer fails every pending request to that peer. Only the
+  requests libp2p actually dropped fail, through their `OutboundFailure`;
+  requests waiting on another dial or in flight on an open connection stay
+  pending and keep their replies.
+
 ## [0.3.0] - 2026-11-01
 
 ### Breaking

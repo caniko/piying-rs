@@ -71,17 +71,28 @@ where
         LF: Future<Output = SwarmResponse> + Send + 'static,
         R: FnOnce(T) -> SwarmRequest,
     {
-        if peer_id == &self.local_peer_id {
+        // ponytail: one cap across all peers; make it per-peer if one stalled
+        // peer must not block sends to the others.
+        let queue_full =
+            peer_id != &self.local_peer_id && self.requests.len() >= self.max_pending_requests;
+        if peer_id == &self.local_peer_id || queue_full {
             let (request_id, channel) = match reply {
                 Some(tx) => (None, ReplyChannel::Local(tx)),
                 None => {
                     let request_id = self.new_local_request_id();
-                    (Some(request_id), ReplyChannel::Event(request_id))
+                    (Some(request_id), ReplyChannel::Event(request_id, *peer_id))
                 }
             };
 
-            self.join_set
-                .spawn(local(shared_data).map(|resp| (channel, resp)));
+            let response = if queue_full {
+                let request = remote(shared_data);
+                #[cfg(feature = "tracing")]
+                tracing::warn!(peer = %peer_id, summary = %request.summary(), pending = self.requests.len(), "piying outbound requests at limit; rejecting");
+                futures::future::Either::Left(std::future::ready(queue_full_response(&request)))
+            } else {
+                futures::future::Either::Right(local(shared_data))
+            };
+            self.join_set.spawn(response.map(|resp| (channel, resp)));
 
             request_id
         } else {
@@ -89,14 +100,8 @@ where
             let summary = request.summary();
             let request_id =
                 RequestId::Outbound(self.request_response.send_request(peer_id, request));
-            self.requests.insert(
-                request_id,
-                RequestContext {
-                    peer_id: *peer_id,
-                    summary,
-                    reply,
-                },
-            );
+            self.requests
+                .insert(request_id, RequestContext { summary, reply });
 
             Some(request_id)
         }
@@ -440,6 +445,20 @@ where
                 tracing::warn!(%peer, %connection_id, %req_id, ?res, "unrecognised request id for response");
                 None
             }
+        }
+    }
+}
+
+/// The typed `MailboxFull` reply for a request rejected because too many
+/// outbound requests are already in flight.
+fn queue_full_response(request: &SwarmRequest) -> SwarmResponse {
+    match request {
+        SwarmRequest::Ask { .. } => SwarmResponse::Ask(Err(WireRemoteSendError::MailboxFull)),
+        SwarmRequest::Tell { .. } => SwarmResponse::Tell(Err(WireRemoteSendError::MailboxFull)),
+        SwarmRequest::Link { .. } => SwarmResponse::Link(Err(WireRemoteSendError::MailboxFull)),
+        SwarmRequest::Unlink { .. } => SwarmResponse::Unlink(Err(WireRemoteSendError::MailboxFull)),
+        SwarmRequest::SignalLinkDied { .. } => {
+            SwarmResponse::SignalLinkDied(Err(WireRemoteSendError::MailboxFull))
         }
     }
 }

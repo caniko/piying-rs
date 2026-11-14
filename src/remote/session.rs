@@ -47,29 +47,69 @@ fn active_session_id() -> Option<&'static str> {
 mod tests {
     use super::applied_protocol;
 
-    #[cfg(feature = "session-isolation")]
+    /// Base id every case asserts on.
+    const BASE: &str = "/piying/messaging/1.0.0";
+
+    /// Session-isolation variable read (once per process) by `applied_protocol`.
+    const SESSION_ENV: &str = "THESPAN_SESSION_ID";
+
+    /// Names the case a spawned child must assert.
+    const CASE_ENV: &str = "PIYING_SESSION_ID_CASE";
+
+    /// One case, asserted in a freshly started process.
+    ///
+    /// `applied_protocol` caches the session id on first access for the
+    /// lifetime of the process, so a case that sets the variable after another
+    /// caller (registry, messaging, a sibling test) has already cached `None`
+    /// cannot observe it. Each case therefore gets a process that has never
+    /// called it, and the parent never mutates the environment.
     #[test]
-    fn applied_protocol_appends_session_id_when_env_set() {
-        // The `OnceLock` cache is keyed on the process; setting the env var
-        // before the first call seeds the cache. If another test in this
-        // process already seeded a different value, `applied_protocol` still
-        // returns *some* suffixed id, which is enough to prove the feature
-        // is active.
-        unsafe { std::env::set_var("THESPAN_SESSION_ID", "test-isolated-42") };
-        let out = applied_protocol("/piying/messaging/1.0.0");
-        assert!(
-            out.starts_with("/piying/messaging/1.0.0/"),
-            "expected suffixed protocol id, got {out:?}",
+    #[ignore = "spawned by session_id_cases_run_in_isolated_processes"]
+    fn session_id_case_in_child_process() {
+        let case = std::env::var(CASE_ENV).expect("child sets PIYING_SESSION_ID_CASE");
+        let isolated = cfg!(feature = "session-isolation");
+        let expected = match (case.as_str(), isolated) {
+            ("set", true) => format!("{BASE}/test-isolated-42"),
+            // The feature off is a pass-through; an empty value is not a
+            // session id, so it is ignored too.
+            ("set", false) | ("empty", _) | ("unset", _) => BASE.to_owned(),
+            (other, _) => panic!("unknown case {other:?}"),
+        };
+        assert_eq!(
+            applied_protocol(BASE),
+            expected,
+            "case {case:?} with session-isolation={isolated}",
         );
     }
 
-    /// With the feature disabled the helper is a pass-through regardless of
-    /// `THESPAN_SESSION_ID` — production builds get the canonical id.
-    #[cfg(not(feature = "session-isolation"))]
+    /// Runs every environment-dependent case in its own process, so the
+    /// process-global cache is seeded from the documented once-per-process
+    /// read instead of from whatever ran first.
     #[test]
-    fn applied_protocol_is_pass_through_without_feature() {
-        unsafe { std::env::set_var("THESPAN_SESSION_ID", "ignored-when-feature-off") };
-        let out = applied_protocol("/piying/messaging/1.0.0");
-        assert_eq!(out, "/piying/messaging/1.0.0");
+    fn session_id_cases_run_in_isolated_processes() {
+        let exe = std::env::current_exe().expect("test binary path");
+        for case in ["set", "empty", "unset"] {
+            let mut child = std::process::Command::new(&exe);
+            child
+                .args([
+                    "--exact",
+                    "--ignored",
+                    "remote::session::tests::session_id_case_in_child_process",
+                ])
+                .env_remove(SESSION_ENV)
+                .env(CASE_ENV, case);
+            if case == "set" {
+                child.env(SESSION_ENV, "test-isolated-42");
+            } else if case == "empty" {
+                child.env(SESSION_ENV, "");
+            }
+            let out = child.output().expect("spawn test child process");
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            assert!(
+                out.status.success() && stdout.contains("1 passed"),
+                "case {case:?} did not pass in its child process\nstdout:\n{stdout}\nstderr:\n{}",
+                String::from_utf8_lossy(&out.stderr),
+            );
+        }
     }
 }

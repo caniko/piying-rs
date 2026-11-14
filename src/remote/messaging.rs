@@ -42,8 +42,8 @@ use futures::FutureExt;
 use libp2p::{
     PeerId, StreamProtocol, request_response,
     swarm::{
-        ConnectionDenied, ConnectionId, DialFailure, FromSwarm, NetworkBehaviour, THandler,
-        THandlerInEvent, THandlerOutEvent, ToSwarm,
+        ConnectionDenied, ConnectionId, FromSwarm, NetworkBehaviour, THandler, THandlerInEvent,
+        THandlerOutEvent, ToSwarm,
     },
 };
 use tokio::{sync::oneshot, task::JoinSet};
@@ -152,7 +152,8 @@ impl fmt::Display for RequestId {
 }
 
 enum ReplyChannel {
-    Event(RequestId),
+    /// The request id and the peer the request was addressed to.
+    Event(RequestId, PeerId),
     Local(oneshot::Sender<SwarmResponse>),
     Remote(request_response::ResponseChannel<SwarmResponse>),
 }

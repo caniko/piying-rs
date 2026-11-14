@@ -21,6 +21,7 @@ where
             local_peer_id,
             next_id: 0,
             requests: HashMap::new(),
+            max_pending_requests: config.max_pending_requests,
             join_set: JoinSet::new(),
         }
     }
