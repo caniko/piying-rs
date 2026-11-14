@@ -213,14 +213,19 @@ where
     fn on_swarm_event(&mut self, event: FromSwarm<'_>) {
         if let FromSwarm::ConnectionClosed(ConnectionClosed { peer_id, .. }) = &event {
             let peer_id = *peer_id;
+            // Collect the per-actor handles under the registry lock, then drop
+            // it before awaiting the per-actor `links` locks: the registry lock
+            // is a std mutex and must never be held across an await.
+            let actors = {
+                let registry = lock_registry();
+                registry
+                    .values()
+                    .map(|actor| (actor.signal_mailbox.clone(), actor.links.clone()))
+                    .collect::<Vec<_>>()
+            };
             tokio::spawn(async move {
                 let mut futures = FuturesUnordered::new();
-                for RemoteRegistryActorRef {
-                    signal_mailbox,
-                    links,
-                    ..
-                } in REMOTE_REGISTRY.lock().await.values()
-                {
+                for (signal_mailbox, links) in actors {
                     for linked_actor_id in (*links.lock().await).keys() {
                         if linked_actor_id.peer_id() == Some(peer_id) {
                             let signal_mailbox = signal_mailbox.clone();

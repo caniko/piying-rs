@@ -19,9 +19,7 @@ use crate::error::{ActorStopReason, SwarmAlreadyBootstrappedError};
 
 #[cfg(feature = "remote-registry")]
 use super::registry;
-use super::{
-    ActorSwarm, REMOTE_REGISTRY, RemoteRegistryActorRef, SwarmCommand, SwarmSender, messaging,
-};
+use super::{ActorSwarm, SwarmCommand, SwarmSender, lock_registry, messaging};
 
 /// A network behaviour that combines messaging and registry capabilities for remote actor communication.
 ///
