@@ -402,7 +402,7 @@ async fn unregister_actor(id: &ActorId) {
         .unwrap()
         .remove_by_id(id);
     #[cfg(feature = "remote")]
-    let entry = remote::REMOTE_REGISTRY.lock().await.remove(id);
+    let entry = remote::lock_registry().remove(id);
     #[cfg(feature = "remote-registry")]
     if let Some(entry) = entry
         && let Some(registered_name) = entry.name

@@ -12,7 +12,7 @@ pub use linkme;
 
 use super::codec::{Decode, Encode};
 
-use super::REMOTE_REGISTRY;
+use super::lock_registry;
 
 #[linkme::distributed_slice]
 pub static REMOTE_ACTORS: [(&'static str, RemoteActorFns)];
@@ -94,7 +94,7 @@ where
     <A::Reply as Reply>::Error: Encode,
 {
     let actor_ref = {
-        let remote_actors = REMOTE_REGISTRY.lock().await;
+        let remote_actors = lock_registry();
         remote_actors
             .get(&actor_id)
             .ok_or(RemoteSendError::ActorNotRunning)?
@@ -131,7 +131,7 @@ where
     <A::Reply as Reply>::Error: Encode,
 {
     let actor_ref = {
-        let remote_actors = REMOTE_REGISTRY.lock().await;
+        let remote_actors = lock_registry();
         remote_actors
             .get(&actor_id)
             .ok_or(RemoteSendError::ActorNotRunning)?
@@ -165,7 +165,7 @@ where
     M: Decode,
 {
     let actor_ref = {
-        let remote_actors = REMOTE_REGISTRY.lock().await;
+        let remote_actors = lock_registry();
         remote_actors
             .get(&actor_id)
             .ok_or(RemoteSendError::ActorNotRunning)?
@@ -190,7 +190,7 @@ where
     M: Decode,
 {
     let actor_ref = {
-        let remote_actors = REMOTE_REGISTRY.lock().await;
+        let remote_actors = lock_registry();
         remote_actors
             .get(&actor_id)
             .ok_or(RemoteSendError::ActorNotRunning)?
@@ -214,7 +214,7 @@ where
     A: Actor,
 {
     let actor_ref = {
-        let remote_actors = REMOTE_REGISTRY.lock().await;
+        let remote_actors = lock_registry();
         remote_actors
             .get(&actor_id)
             .ok_or(RemoteSendError::ActorNotRunning)?
@@ -238,7 +238,7 @@ where
     A: Actor,
 {
     let actor_ref = {
-        let remote_actors = REMOTE_REGISTRY.lock().await;
+        let remote_actors = lock_registry();
         remote_actors
             .get(&actor_id)
             .ok_or(RemoteSendError::ActorNotRunning)?
@@ -259,7 +259,7 @@ where
     A: Actor,
 {
     let actor_ref = {
-        let remote_actors = REMOTE_REGISTRY.lock().await;
+        let remote_actors = lock_registry();
         remote_actors
             .get(&notified_actor_id)
             .ok_or(RemoteSendError::ActorNotRunning)?

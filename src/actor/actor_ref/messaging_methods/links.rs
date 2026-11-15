@@ -116,9 +116,7 @@ where
             return Ok(());
         }
 
-        remote::REMOTE_REGISTRY
-            .lock()
-            .await
+        remote::lock_registry()
             .entry(self.id)
             .or_insert_with(|| remote::RemoteRegistryActorRef::new(self.clone(), None));
 

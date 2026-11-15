@@ -96,8 +96,6 @@ where
     }
 
     /// Converts this ActorRef to a RemoteActorRef, registering it in the actor registry.
-    ///
-    /// This method is async because it needs to acquire a lock on the shared registry.
     #[cfg(feature = "remote")]
     pub async fn into_remote_ref(&self) -> RemoteActorRef<A>
     where
@@ -106,9 +104,7 @@ where
         let swarm_tx = remote::ActorSwarm::with(|s| s.sender().clone()).unwrap();
         let remote_ref = RemoteActorRef::new(self.id(), swarm_tx);
 
-        remote::REMOTE_REGISTRY
-            .lock()
-            .await
+        remote::lock_registry()
             .entry(self.id())
             .or_insert_with(|| remote::RemoteRegistryActorRef::new_weak(self.downgrade(), None));
 
@@ -116,10 +112,6 @@ where
     }
 
     /// Blocking version of `into_remote_ref` for use in synchronous contexts.
-    ///
-    /// # Panics
-    ///
-    /// This function panics if called within an asynchronous execution context.
     #[cfg(feature = "remote")]
     pub fn into_remote_ref_blocking(&self) -> RemoteActorRef<A>
     where
@@ -128,8 +120,7 @@ where
         let swarm_tx = remote::ActorSwarm::with(|s| s.sender().clone()).unwrap();
         let remote_ref = RemoteActorRef::new(self.id(), swarm_tx);
 
-        remote::REMOTE_REGISTRY
-            .blocking_lock()
+        remote::lock_registry()
             .entry(self.id())
             .or_insert_with(|| remote::RemoteRegistryActorRef::new_weak(self.downgrade(), None));
 

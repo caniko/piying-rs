@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   requests libp2p actually dropped fail, through their `OutboundFailure`;
   requests waiting on another dial or in flight on an open connection stay
   pending and keep their replies.
+- The local remote-actor registry is now guarded by a synchronous lock. A fair
+  async mutex shared by every tokio runtime in the process could hand the lock
+  to a waiter whose runtime thread was blocked, leaving every other runtime
+  (including actor teardown) waiting forever.
 
 ## [0.3.0] - 2026-11-01
 

@@ -64,7 +64,7 @@ use std::{
     any,
     collections::HashMap,
     str,
-    sync::{Arc, LazyLock},
+    sync::{Arc, LazyLock, Mutex, MutexGuard, PoisonError, TryLockError},
 };
 
 #[cfg(all(
@@ -76,7 +76,6 @@ use std::error;
 
 use futures::StreamExt;
 use libp2p::{PeerId, Swarm, swarm::NetworkBehaviour};
-use tokio::sync::Mutex;
 
 #[cfg(feature = "remote-registry")]
 use crate::error::RegistryError;
@@ -106,24 +105,51 @@ pub use behaviour::*;
 pub use session::applied_protocol;
 pub use swarm::*;
 
+/// Process-wide local actor registry.
+///
+/// This is deliberately a [`std::sync::Mutex`]: it is shared by every tokio
+/// runtime in the process, and a fair async mutex hands ownership to the head
+/// waiter. If that waiter's runtime thread is blocked, nobody releases the lock
+/// and every other runtime hangs on teardown. Every critical section here is
+/// short and synchronous, so no waiter can own the lock while its thread stalls.
 pub(crate) static REMOTE_REGISTRY: LazyLock<Mutex<HashMap<ActorId, RemoteRegistryActorRef>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
+
+type RegistryGuard = MutexGuard<'static, HashMap<ActorId, RemoteRegistryActorRef>>;
+
+/// Lock the registry, recovering from poisoning.
+///
+/// The guard must never be held across an `.await`.
+pub(crate) fn lock_registry() -> RegistryGuard {
+    REMOTE_REGISTRY
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+}
+
+/// Try to lock the registry without blocking.
+///
+/// Returns `None` when another thread holds the lock. A poisoned lock is
+/// recovered rather than reported.
+fn try_lock_registry() -> Option<RegistryGuard> {
+    match REMOTE_REGISTRY.try_lock() {
+        Ok(registry) => Some(registry),
+        Err(TryLockError::Poisoned(poisoned)) => Some(poisoned.into_inner()),
+        Err(TryLockError::WouldBlock) => None,
+    }
+}
 
 /// Register an actor in the local REMOTE_REGISTRY under a well-known ActorId.
 /// This allows `RemoteActorRef::for_peer()` to find the actor without DHT lookup.
 pub async fn register_actor_local<A: Actor>(actor_ref: &ActorRef<A>, id: ActorId) {
     let entry = RemoteRegistryActorRef::new(actor_ref.clone(), None);
-    REMOTE_REGISTRY.lock().await.insert(id, entry);
+    lock_registry().insert(id, entry);
 }
 
 /// Remove an actor from the local REMOTE_REGISTRY by its well-known ActorId.
 /// Returns `true` if the entry was present and removed.
 pub fn unregister_actor_local(id: &ActorId) -> bool {
     // Use try_lock to avoid blocking (this may be called from a Drop impl).
-    match REMOTE_REGISTRY.try_lock() {
-        Ok(mut registry) => registry.remove(id).is_some(),
-        Err(_) => false,
-    }
+    try_lock_registry().is_some_and(|mut registry| registry.remove(id).is_some())
 }
 
 pub(crate) struct RemoteRegistryActorRef {
@@ -411,55 +437,33 @@ where
 /// actors will no longer be found by incoming remote messages or
 /// [`RemoteActorRef::for_peer()`](crate::actor::RemoteActorRef::for_peer) lookups until they are re-registered.
 pub async fn clear_registry() {
-    REMOTE_REGISTRY.lock().await.clear();
+    lock_registry().clear();
 }
 
 /// Synchronous version of [`clear_registry`].
 ///
-/// Spins on [`Mutex::try_lock`] with [`std::thread::yield_now`] until the lock
-/// is acquired. Intended for test harness cleanup that runs outside an async
-/// context.
+/// Intended for test harness cleanup that runs outside an async context.
 pub fn clear_registry_sync() {
-    loop {
-        match REMOTE_REGISTRY.try_lock() {
-            Ok(mut registry) => {
-                registry.clear();
-                return;
-            }
-            Err(_) => std::thread::yield_now(),
-        }
-    }
+    lock_registry().clear();
 }
 
 /// Synchronous version of [`register_actor_local`].
 ///
-/// Spins on [`Mutex::try_lock`] with [`std::thread::yield_now`] until the lock
-/// is acquired. Intended for pre-run hooks that execute outside an async context
+/// Intended for pre-run hooks that execute outside an async context
 /// (e.g., before the network actor starts blocking).
 pub fn register_actor_local_sync<A: Actor>(actor_ref: &ActorRef<A>, well_known_id: ActorId) {
-    loop {
-        match REMOTE_REGISTRY.try_lock() {
-            Ok(mut registry) => {
-                registry.insert(
-                    well_known_id,
-                    RemoteRegistryActorRef::new(actor_ref.clone(), None),
-                );
-                return;
-            }
-            Err(_) => std::thread::yield_now(),
-        }
-    }
+    lock_registry().insert(
+        well_known_id,
+        RemoteRegistryActorRef::new(actor_ref.clone(), None),
+    );
 }
 
 /// Check whether an actor with the given ID is registered in the local registry.
 ///
-/// Uses [`Mutex::try_lock`] to avoid blocking. Returns `false` if the lock is
+/// Uses `try_lock` to avoid blocking. Returns `false` if the lock is
 /// contended (conservative: caller should fall back to swarm routing).
 pub fn is_registered_locally(actor_id: ActorId) -> bool {
-    match REMOTE_REGISTRY.try_lock() {
-        Ok(registry) => registry.contains_key(&actor_id),
-        Err(_) => false,
-    }
+    try_lock_registry().is_some_and(|registry| registry.contains_key(&actor_id))
 }
 
 /// Unregisters an actor within the swarm.
@@ -472,4 +476,59 @@ pub async fn unregister(name: impl Into<Arc<str>>) -> Result<(), RegistryError> 
         .unregister(name.into())
         .await;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{sync::mpsc, time::Duration};
+
+    use super::*;
+
+    /// Poisoning must not disable the registry: teardown paths call into it and
+    /// a `.lock().unwrap()` here would turn one unrelated panic into a
+    /// process-wide failure.
+    #[test]
+    fn registry_lock_recovers_from_poison() {
+        let _ = std::thread::spawn(|| {
+            let _guard = lock_registry();
+            panic!("poison the registry");
+        })
+        .join();
+
+        let id = ActorId::generate();
+        // Other tests may hold the lock briefly; a poisoned lock must still be
+        // acquirable once they release it.
+        let recovered = (0..1000).any(|_| {
+            try_lock_registry().is_some() || {
+                std::thread::sleep(Duration::from_millis(1));
+                false
+            }
+        });
+        assert!(recovered, "try_lock must recover a poisoned lock");
+        assert!(!is_registered_locally(id));
+        assert!(!unregister_actor_local(&id));
+        assert!(!lock_registry().contains_key(&id));
+    }
+
+    /// The blocking lock is only ever held for a short synchronous section, so
+    /// the non-blocking helpers must report contention instead of waiting for
+    /// it. A regression here stalls actor teardown behind any busy critical
+    /// section.
+    #[test]
+    fn registry_try_lock_does_not_wait_for_the_lock() {
+        let guard = lock_registry();
+        let (tx, rx) = mpsc::channel();
+        std::thread::spawn(move || {
+            let id = ActorId::generate();
+            tx.send((is_registered_locally(id), unregister_actor_local(&id)))
+                .unwrap();
+        });
+
+        let (registered, removed) = rx
+            .recv_timeout(Duration::from_secs(5))
+            .expect("try_lock helpers blocked on a held registry lock");
+        assert!(!registered);
+        assert!(!removed);
+        drop(guard);
+    }
 }

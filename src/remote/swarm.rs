@@ -25,7 +25,7 @@ use crate::{
 
 #[cfg(feature = "remote-registry")]
 use super::{
-    DowncastRegsiteredActorRefError, REMOTE_REGISTRY, RemoteRegistryActorRef,
+    DowncastRegsiteredActorRefError, RemoteRegistryActorRef, lock_registry,
     registry::{
         ActorRegistration, LookupLocalReply, LookupReply, LookupResult, RegisterReply,
         UnregisterReply,

@@ -86,7 +86,7 @@ impl ActorSwarm {
                 return Err(RegistryError::BadActorType);
             }
 
-            let registry = REMOTE_REGISTRY.lock().await;
+            let registry = lock_registry();
             let Some(actor_ref_any) = registry.get(&actor_id) else {
                 return Ok(None);
             };
@@ -162,7 +162,7 @@ impl ActorSwarm {
             let res = reply_rx.await;
             match res {
                 Ok(()) | Err(RegistryError::QuorumFailed { .. }) => {
-                    REMOTE_REGISTRY.lock().await.insert(
+                    lock_registry().insert(
                         actor_ref.id(),
                         RemoteRegistryActorRef::new(actor_ref, Some(name)),
                     );
