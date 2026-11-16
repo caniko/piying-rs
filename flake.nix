@@ -2,7 +2,7 @@
   description = "Rust project";
 
   inputs = {
-    harbor-rs.url = "git+https://github.com/caniko/harbor-rs.git?ref=trunk&rev=05cc4f162b55fa904b687db1821e2463fa813e50";
+    harbor-rs.url = "git+https://github.com/caniko/harbor-rs.git?ref=trunk&rev=a2c6f8e0d0b3356a2528de381e6a095d150971fb";
     rs-harbor.follows = "harbor-rs";
     nixpkgs.follows = "harbor-rs/nixpkgs";
     rust-overlay.follows = "harbor-rs/rust-overlay";
