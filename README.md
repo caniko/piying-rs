@@ -36,9 +36,20 @@ is layered, and needs `serde-codec` or `rkyv-codec`:
 - `remote`: messaging core (request-response, `remote::Behaviour`, `#[remote_message]`).
   Bring your own libp2p swarm. No Kademlia, mDNS or transports are compiled in.
 - `remote-registry`: adds Kademlia name `register`/`lookup` across the network.
-- `remote-bootstrap`: adds `remote::bootstrap()` (mDNS, TCP, QUIC); implies `remote-registry`.
+- `remote-tcp`: adds `remote::bootstrap()`/`bootstrap_on()` over TCP; implies `remote-registry`.
+- `remote-quic`: adds the QUIC transport to the bootstrap swarm; implies `remote-tcp`.
+- `remote-mdns`: adds mDNS local-network discovery to the bootstrap swarm; implies `remote-tcp`.
+- `remote-bootstrap`: `remote-quic` + `remote-mdns`, the full bootstrap swarm.
 
 See the [API documentation](https://docs.rs/piying) for actor and messaging examples.
+
+## Choosing bootstrap transports (0.3.1)
+
+`remote-bootstrap` still builds the TCP + QUIC + mDNS swarm. Deployments that do not
+use multicast discovery can depend on `remote-quic` (or `remote-tcp`) instead and
+drop libp2p-mdns and hickory-proto. Without `remote-mdns`,
+`bootstrap()` discovers no peers on its own; dial them or look them up through the
+registry.
 
 ## Migrating to 0.3.0
 
@@ -63,7 +74,7 @@ keep the larger upstream address collection out of every remote event. Borrowed
 access works through dereferencing; use `*addresses` when moving the collection
 into code that expects an owned `kad::Addresses`.
 
-The `remote-bootstrap` feature requires `hickory-proto` 0.26.3 or later in the 0.26 series to
+The `remote-mdns` feature (and so `remote-bootstrap`) requires `hickory-proto` 0.26.3 or later in the 0.26 series to
 resolve `RUSTSEC-2026-0118` and `RUSTSEC-2026-0119`. The existing rkyv framing helpers
 remain supplied by `libp2p-rkyv-codec 0.3`; Piying implements the libp2p 0.57
 codec itself. Remote protocol identifiers and the `THSP` version-2 rkyv framing

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-19
+
+### Added
+
+- `remote-tcp`, `remote-quic` and `remote-mdns` features split the bootstrap
+  swarm by transport. `remote-tcp` enables `remote::bootstrap()` and
+  `bootstrap_on()` over TCP with noise and yamux; `remote-quic` adds QUIC and
+  `remote-mdns` adds mDNS discovery. `remote-bootstrap` now means
+  `remote-quic` + `remote-mdns` and builds the same swarm as before, so existing
+  users need no change. Dropping mDNS removes libp2p-mdns and hickory-proto;
+  dropping QUIC removes quinn, rustls, rcgen, libp2p-tls and about 40 other
+  crates.
+
+### Changed
+
+- Bumped `piying`, `piying_macros` and `piying_actors` to 0.3.1.
+
 ### Fixed
 
 - Bounded outbound remote requests. A sender that outpaces a stalled peer used
@@ -131,7 +148,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Typo in `pubsub.rs` doc comment ("bessage" → "message").
 - Typo in `trait_def.rs` doc comment ("unwraped" → "unwrapped").
 
-[Unreleased]: https://github.com/caniko/piying-rs/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/caniko/piying-rs/compare/0.3.1...HEAD
+[0.3.1]: https://github.com/caniko/piying-rs/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/caniko/piying-rs/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/caniko/piying-rs/compare/0.1.1...0.2.0
 [0.1.1]: https://github.com/caniko/piying-rs/releases/tag/0.1.1

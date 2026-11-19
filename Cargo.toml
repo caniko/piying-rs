@@ -3,8 +3,8 @@ resolver = "2"
 members = [".", "actors", "macros"]
 
 [workspace.dependencies]
-piying = { path = ".", version = "0.3.0" }
-piying_macros = { path = "macros", version = "0.3.0" }
+piying = { path = ".", version = "0.3.1" }
+piying_macros = { path = "macros", version = "0.3.1" }
 
 futures = "0.3"
 tokio = "1.47"
@@ -19,7 +19,7 @@ all-features = true
 
 [package]
 name = "piying"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 rust-version = "1.88.0"
 description = "Fault-tolerant Async Actors Built on Tokio"
@@ -45,16 +45,15 @@ macros = ["dep:piying_macros"]
 remote = ["dep:const-fnv1a-hash", "dep:const-str", "dep:libp2p", "dep:linkme"]
 # Kademlia name register/lookup on top of `remote`.
 remote-registry = ["remote", "libp2p/kad", "dep:either"]
-# `remote::bootstrap()` (mDNS + TCP + QUIC) on top of `remote-registry`.
-remote-bootstrap = [
-  "remote-registry",
-  "libp2p/mdns",
-  "libp2p/tcp",
-  "libp2p/quic",
-  "libp2p/noise",
-  "libp2p/yamux",
-  "dep:hickory-proto",
-]
+# `remote::bootstrap()` and `bootstrap_on()` over TCP (noise + yamux), on top
+# of `remote-registry`. No mDNS discovery and no QUIC.
+remote-tcp = ["remote-registry", "libp2p/tcp", "libp2p/noise", "libp2p/yamux"]
+# Adds the QUIC transport to the bootstrap swarm.
+remote-quic = ["remote-tcp", "libp2p/quic"]
+# Adds mDNS local-network peer discovery to the bootstrap swarm.
+remote-mdns = ["remote-tcp", "libp2p/mdns", "dep:hickory-proto"]
+# The full 0.3.0 bootstrap swarm: TCP + QUIC + mDNS.
+remote-bootstrap = ["remote-quic", "remote-mdns"]
 rkyv = ["dep:rkyv"]
 rkyv-codec = ["rkyv", "dep:libp2p-rkyv-codec"]
 serde = ["dep:serde"]

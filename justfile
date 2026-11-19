@@ -11,7 +11,7 @@ test-serde:
 test-rkyv:
     cargo test --workspace --features macros,tracing,remote-bootstrap,rkyv-codec,metrics
 
-# Test minimal feature sets (no remote, messaging-only remote, registry)
+# Test minimal feature sets (no remote, messaging-only remote, registry, bootstrap transports)
 test-minimal:
     # Library-only checks avoid dev-dependencies re-enabling macros and tracing.
     cargo check --locked -p piying --lib --no-default-features
@@ -20,6 +20,9 @@ test-minimal:
     cargo test -p piying --no-default-features --features macros
     cargo check --locked -p piying --lib --no-default-features --features remote,serde-codec
     cargo check --locked -p piying --lib --no-default-features --features remote-registry,serde-codec
+    cargo test -p piying --no-default-features --features remote-tcp,serde-codec --test bootstrap
+    cargo test -p piying --no-default-features --features remote-quic,serde-codec --test bootstrap
+    cargo check --locked -p piying --lib --no-default-features --features remote-mdns,serde-codec
     cargo test -p piying --no-default-features --features macros,remote,serde-codec
     cargo test -p piying_actors
     cargo test -p piying_macros
