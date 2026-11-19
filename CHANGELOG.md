@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `remote-tcp`, `remote-quic` and `remote-mdns` features split the bootstrap
+  swarm by transport. `remote-tcp` enables `remote::bootstrap()` and
+  `bootstrap_on()` over TCP with noise and yamux; `remote-quic` adds QUIC and
+  `remote-mdns` adds mDNS discovery. `remote-bootstrap` now means
+  `remote-quic` + `remote-mdns` and builds the same swarm as before, so existing
+  users need no change. Dropping mDNS removes libp2p-mdns and hickory-proto;
+  dropping QUIC removes quinn, rustls, rcgen, libp2p-tls and about 40 other
+  crates.
+
 ### Fixed
 
 - Bounded outbound remote requests. A sender that outpaces a stalled peer used

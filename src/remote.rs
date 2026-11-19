@@ -9,8 +9,11 @@
 //!
 //! - `remote`: messaging core (request-response). Bring your own libp2p swarm.
 //! - `remote-registry`: adds a Kademlia name registry (`register`/`lookup` across the network).
-//! - `remote-bootstrap`: adds `bootstrap()`/`bootstrap_on()` (mDNS, TCP, QUIC); implies
-//!   `remote-registry`.
+//! - `remote-tcp`: adds `bootstrap()`/`bootstrap_on()` over TCP; implies `remote-registry`.
+//! - `remote-quic`: adds the QUIC transport to the bootstrap swarm; implies `remote-tcp`.
+//! - `remote-mdns`: adds mDNS local-network discovery to the bootstrap swarm; implies
+//!   `remote-tcp`.
+//! - `remote-bootstrap`: `remote-quic` + `remote-mdns`, the full bootstrap swarm.
 //!
 //! ## Key Features
 //!
@@ -22,12 +25,13 @@
 //! - **Actor Registration & Discovery** (`remote-registry`): Actors can be registered under
 //!   unique names and looked up across the network using
 //!   [`RemoteActorRef`](crate::actor::RemoteActorRef), backed by a Kademlia DHT.
-//! - **Quick Bootstrap** (`remote-bootstrap`): The `bootstrap()` and `bootstrap_on()` functions
+//! - **Quick Bootstrap** (`remote-tcp` and up): The `bootstrap()` and `bootstrap_on()` functions
 //!   provide one-line setup for development and simple deployments.
 //!
 //! ## Getting Started
 //!
-//! For quick prototyping and development (requires `remote-bootstrap`):
+//! For quick prototyping and development (requires `remote-tcp`; add `remote-mdns` for
+//! local-network discovery):
 //!
 //! ```ignore
 //! use piying::remote;
@@ -68,7 +72,7 @@ use std::{
 };
 
 #[cfg(all(
-    feature = "remote-bootstrap",
+    feature = "remote-tcp",
     feature = "serde-codec",
     not(feature = "rkyv-codec")
 ))]
@@ -260,14 +264,15 @@ pub trait RemoteMessage<M> {
     const REMOTE_ID: &'static str;
 }
 
-/// Bootstrap a simple actor swarm with mDNS discovery for local development.
+/// Bootstrap a simple actor swarm for local development.
 ///
 /// This convenience function creates and runs a libp2p swarm with:
-/// - TCP and QUIC transports
-/// - mDNS peer discovery (local network only)
+/// - TCP transport, plus QUIC with the `remote-quic` feature
+/// - mDNS peer discovery (local network only) with the `remote-mdns` feature
 /// - Automatic listening on an OS-assigned port
 ///
-/// Requires the `remote-bootstrap` and `serde-codec` features (uses CBOR for transport encoding).
+/// Requires the `remote-tcp` and `serde-codec` features (uses CBOR for transport encoding).
+/// `remote-bootstrap` enables TCP, QUIC and mDNS together.
 ///
 /// For production use or custom configuration, use `piying::remote::Behaviour`
 /// with your own libp2p swarm setup.
@@ -286,7 +291,7 @@ pub trait RemoteMessage<M> {
 /// }
 /// ```
 #[cfg(all(
-    feature = "remote-bootstrap",
+    feature = "remote-tcp",
     feature = "serde-codec",
     not(feature = "rkyv-codec")
 ))]
@@ -296,35 +301,48 @@ pub fn bootstrap() -> Result<PeerId, Box<dyn error::Error>> {
 
 /// Bootstrap with a specific listen address.
 ///
-/// Requires the `remote-bootstrap` and `serde-codec` features.
+/// Requires the `remote-tcp` and `serde-codec` features. A `/udp/.../quic-v1` address
+/// needs `remote-quic`.
 #[cfg(all(
-    feature = "remote-bootstrap",
+    feature = "remote-tcp",
     feature = "serde-codec",
     not(feature = "rkyv-codec")
 ))]
-// mdns handlers emit `Infallible`, which makes derive-generated match arms unreachable.
+// mdns and dummy handlers emit `Infallible`, which makes derive-generated match arms unreachable.
 #[allow(unreachable_code)]
 pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
-    use libp2p::{SwarmBuilder, mdns, noise, swarm::SwarmEvent, tcp, yamux};
+    #[cfg(feature = "remote-mdns")]
+    use libp2p::mdns;
+    #[cfg(any(feature = "remote-mdns", feature = "tracing"))]
+    use libp2p::swarm::SwarmEvent;
+    use libp2p::{SwarmBuilder, noise, tcp, yamux};
+
+    #[cfg(feature = "remote-mdns")]
+    type Discovery = mdns::tokio::Behaviour;
+    #[cfg(not(feature = "remote-mdns"))]
+    type Discovery = libp2p::swarm::dummy::Behaviour;
 
     #[derive(NetworkBehaviour)]
     struct BootstrapBehaviour {
         piying: Behaviour,
-        mdns: mdns::tokio::Behaviour,
+        mdns: Discovery,
     }
 
-    let mut swarm = SwarmBuilder::with_new_identity()
-        .with_tokio()
-        .with_tcp(
-            tcp::Config::default(),
-            noise::Config::new,
-            yamux::Config::default,
-        )?
-        .with_quic()
+    let builder = SwarmBuilder::with_new_identity().with_tokio().with_tcp(
+        tcp::Config::default(),
+        noise::Config::new,
+        yamux::Config::default,
+    )?;
+    #[cfg(feature = "remote-quic")]
+    let builder = builder.with_quic();
+    let mut swarm = builder
         .with_behaviour(|key| {
             let local_peer_id = key.public().to_peer_id();
             let piying = Behaviour::new(local_peer_id, messaging::Config::default());
+            #[cfg(feature = "remote-mdns")]
             let mdns = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)?;
+            #[cfg(not(feature = "remote-mdns"))]
+            let mdns = libp2p::swarm::dummy::Behaviour;
 
             Ok(BootstrapBehaviour { piying, mdns })
         })?
@@ -339,6 +357,7 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
     tokio::spawn(async move {
         loop {
             match swarm.select_next_some().await {
+                #[cfg(feature = "remote-mdns")]
                 SwarmEvent::Behaviour(BootstrapBehaviourEvent::Mdns(mdns::Event::Discovered(
                     list,
                 ))) => {
@@ -348,6 +367,7 @@ pub fn bootstrap_on(addr: &str) -> Result<PeerId, Box<dyn error::Error>> {
                         swarm.add_peer_address(peer_id, multiaddr);
                     }
                 }
+                #[cfg(feature = "remote-mdns")]
                 SwarmEvent::Behaviour(BootstrapBehaviourEvent::Mdns(mdns::Event::Expired(
                     list,
                 ))) => {
